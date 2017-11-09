@@ -3,6 +3,7 @@ import { formatComponentRegistry } from '../../util/data-serialize';
 import { generateCore } from './app-core';
 import { generateAppGlobal, generateAppGlobalEs5 } from './app-global';
 import { generateAppRegistry } from './app-registry';
+import { generateEs5DisabledMessage } from './app-es5-disabled';
 import { generateLoader } from './app-loader';
 import { hasError } from '../util';
 import { setBuildConditionals } from './build-conditionals';
@@ -47,7 +48,7 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
 
   } else {
     // not doing an es5 right now
-    appRegistry.corePolyfilled = generateDisabledEs5Message();
+    appRegistry.corePolyfilled = generateEs5DisabledMessage(config, ctx);
   }
 
   // create a json file for the app registry
@@ -57,15 +58,4 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   await generateLoader(config, ctx, appRegistry);
 
   timespan.finish(`generateAppFiles: ${config.namespace} finished`);
-}
-
-
-function generateDisabledEs5Message() {
-  // not doing an es5 right now
-  // but it's possible during development the user
-  // tests on a browser that doesn't support es2015
-  const fileName = 'es5-build-disabled.js';
-
-
-  return fileName;
 }
