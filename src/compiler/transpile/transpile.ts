@@ -1,5 +1,5 @@
 import addMetadataExport from './transformers/add-metadata-export';
-import { BuildConfig, BuildContext, Diagnostic, ModuleFile, ModuleFiles, TranspileModulesResults, TranspileResults } from '../../util/interfaces';
+import { BuildConfig, BuildContext, Diagnostic, ModuleFile, ModuleFiles, SourceTarget, TranspileModulesResults, TranspileResults } from '../../util/interfaces';
 import { buildError, catchError, isSassFile, normalizePath } from '../util';
 import { componentTsFileClass, componentModuleFileClass } from './transformers/component-class';
 import { getTsHost } from './compiler-host';
@@ -160,10 +160,10 @@ function transpileModules(config: BuildConfig, ctx: BuildContext, moduleFiles: M
 }
 
 
-function transpileProgram(config: BuildConfig, ctx: BuildContext, tsFileNames: string[], transpileResults: TranspileModulesResults, target: string) {
+function transpileProgram(config: BuildConfig, ctx: BuildContext, tsFileNames: string[], transpileResults: TranspileModulesResults, sourceTarget: SourceTarget) {
 
   // get the tsconfig compiler options we'll use
-  const tsOptions = getUserTsConfig(config, target);
+  const tsOptions = getUserTsConfig(config, sourceTarget);
 
   if (config.suppressTypeScriptErrors) {
     // suppressTypeScriptErrors mainly for unit testing

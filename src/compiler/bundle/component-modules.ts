@@ -1,4 +1,4 @@
-import { BuildConfig, BuildContext, FilesMap, ManifestBundle, ModuleFile } from '../../util/interfaces';
+import { BuildConfig, BuildContext, FilesMap, ManifestBundle, ModuleFile, SourceTarget } from '../../util/interfaces';
 import { hasError, normalizePath } from '../util';
 import { buildExpressionReplacer } from '../build/replacer';
 import { dashToPascalCase } from '../../util/helpers';
@@ -6,7 +6,7 @@ import localResolution from './rollup-plugins/local-resolution';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
 
 
-export function generateComponentModules(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle) {
+export function generateComponentModules(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle): Promise<any> {
   const bundleCacheKey = getModuleBundleCacheKey(manifestBundle.moduleFiles.map(m => m.cmpMeta.tagNameMeta));
 
   if (canSkipBuild(config, ctx, manifestBundle.moduleFiles, bundleCacheKey)) {
@@ -20,12 +20,18 @@ export function generateComponentModules(config: BuildConfig, ctx: BuildContext,
   // returned value is array of strings so it needs to be joined here
   const moduleBundleInput = createInMemoryBundleInput(manifestBundle.moduleFiles).join('\n');
 
-  // start the bundler on our temporary file
-  return bundleComponents(config, ctx, manifestBundle, moduleBundleInput, bundleCacheKey);
+  // standard es2015 build
+  const bundlePromise = bundleComponents(config, ctx, manifestBundle, moduleBundleInput, bundleCacheKey, 'es2015');
+
+  // only do the es5 build if es5 fallback is enabled
+  const bundleEs5Promise = config.es5Fallback ? bundleComponents(config, ctx, manifestBundle, moduleBundleInput, bundleCacheKey, 'es5') : Promise.resolve();
+
+  // plz wait my good sir
+  return Promise.all([bundlePromise, bundleEs5Promise]);
 }
 
 
-function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, moduleBundleInput: string, bundleCacheKey: string) {
+function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, moduleBundleInput: string, bundleCacheKey: string, sourceTarget: SourceTarget) {
   // start the bundler on our temporary file
   return config.sys.rollup.rollup({
     input: IN_MEMORY_INPUT,
@@ -39,7 +45,7 @@ function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle
         sourceMap: false
       }),
       entryInMemoryPlugin(IN_MEMORY_INPUT, moduleBundleInput),
-      transpiledInMemoryPlugin(config, ctx),
+      transpiledInMemoryPlugin(config, ctx, sourceTarget),
       localResolution(config),
     ],
     onwarn: createOnWarnFn(ctx.diagnostics, manifestBundle.moduleFiles)
@@ -80,7 +86,7 @@ export function wrapComponentImports(content: string) {
 }
 
 
-export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext) {
+export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget) {
   const sys = config.sys;
   const assetsCache: FilesMap = {};
 
@@ -149,9 +155,17 @@ export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext)
     load(sourcePath: string): string {
       sourcePath = normalizePath(sourcePath);
 
-      if (typeof ctx.jsFiles[sourcePath] === 'string') {
-        // perfect, we already got this js file cached
-        return ctx.jsFiles[sourcePath];
+      if (sourceTarget === 'es5') {
+        // es5
+        if (typeof ctx.jsFilesEs5[sourcePath] === 'string') {
+          // perfect, we already got this js file cached
+          return ctx.jsFilesEs5[sourcePath];
+        }
+      } else {
+        if (typeof ctx.jsFiles[sourcePath] === 'string') {
+          // perfect, we already got this js file cached
+          return ctx.jsFiles[sourcePath];
+        }
       }
 
       if (typeof assetsCache[sourcePath] === 'string') {
@@ -165,7 +179,13 @@ export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext)
       ctx.moduleFiles[sourcePath] = {
         jsFilePath: sourcePath,
       };
-      ctx.jsFiles[sourcePath] = jsText;
+
+      if (sourceTarget === 'es5') {
+        ctx.jsFilesEs5[sourcePath] = jsText;
+
+      } else {
+        ctx.jsFiles[sourcePath] = jsText;
+      }
 
       return jsText;
     }

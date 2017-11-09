@@ -2,44 +2,14 @@ import { BuildConfig, BuildContext, BuildConditionals } from '../../util/interfa
 import { buildCoreContent } from './build-core-content';
 import { generatePreamble, normalizePath } from '../util';
 import { getAppFileName } from './generate-app-files';
-import { setBuildConditionals } from './build-conditionals';
 
 
-export function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[]) {
-  const staticName = 'core.build.js';
-
-  // figure out which sections should be included
-  ctx.buildConditionals = setBuildConditionals(ctx, ctx.manifestBundles);
-
-  // create a list of builds we need to do
-  const coreBuilds = getCoreBuilds(ctx.buildConditionals);
-
-  return Promise.all([
-    config.sys.getClientCoreFile({ staticName: staticName }),
-    getCorePolyfills(config)
-
-  ]).then(results => {
-    const coreContent = results[0];
-    const polyfillsContent = results[1];
-
-    coreBuilds.forEach(coreBuild => {
-      generateCoreBuild(config, ctx, coreBuild, globalJsContent, coreContent, polyfillsContent);
-    });
-
-  }).catch(err => {
-    config.logger.error('generateCore', err);
-
-  }).then(() => {
-    return coreBuilds;
-  });
-}
-
-
-function generateCoreBuild(config: BuildConfig, ctx: BuildContext, coreBuild: BuildConditionals, globalJsContent: string[], coreContent: string, polyfillsContent: string) {
+export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals) {
   // mega-minify the core w/ property renaming, but not the user's globals
   // hardcode which features should and should not go in the core builds
   // process the transpiled code by removing unused code and minify when configured to do so
-  let jsContent = buildCoreContent(config, ctx, coreBuild, coreContent);
+  const coreContent = await config.sys.getClientCoreFile({ staticName: 'core.build.js' });
+  let jsContent = buildCoreContent(config, ctx, buildConditionals, coreContent);
 
   let globalContent = globalJsContent.join('\n').trim();
   if (globalContent.length) {
@@ -64,36 +34,39 @@ function generateCoreBuild(config: BuildConfig, ctx: BuildContext, coreBuild: Bu
   // wrap the core js code together
   jsContent = wrapCoreJs(config, jsContent);
 
-  if (coreBuild.polyfills) {
+  if (buildConditionals.polyfills) {
     // this build wants polyfills so let's
     // add the polyfills to the top of the core content
     // the polyfilled code is already es5/minified ready to go
+    const polyfillsContent = await getCorePolyfills(config);
     jsContent = polyfillsContent + '\n' + jsContent;
   }
 
   const appFileName = getAppFileName(config);
-  coreBuild.fileName = getBuildFilename(config, appFileName, coreBuild.coreId, jsContent);
+  buildConditionals.fileName = getBuildFilename(config, appFileName, buildConditionals.coreId, jsContent);
 
-  if (ctx.appFiles[coreBuild.coreId] === jsContent) {
+  if (ctx.appFiles[buildConditionals.coreId] === jsContent) {
     // build is identical from last, no need to resave
-    return;
+    return buildConditionals;
   }
-  ctx.appFiles[coreBuild.coreId] = jsContent;
+  ctx.appFiles[buildConditionals.coreId] = jsContent;
 
   // update the app core filename within the content
-  jsContent = jsContent.replace(APP_CORE_FILENAME_PLACEHOLDER, coreBuild.fileName);
+  jsContent = jsContent.replace(APP_CORE_FILENAME_PLACEHOLDER, buildConditionals.fileName);
 
   if (config.generateWWW) {
     // write the www/build/ app core file
-    const appCoreWWW = normalizePath(config.sys.path.join(config.buildDir, appFileName, coreBuild.fileName));
+    const appCoreWWW = normalizePath(config.sys.path.join(config.buildDir, appFileName, buildConditionals.fileName));
     ctx.filesToWrite[appCoreWWW] = jsContent;
   }
 
   if (config.generateDistribution) {
     // write the dist/ app core file
-    const appCoreDist = normalizePath(config.sys.path.join(config.distDir, appFileName, coreBuild.fileName));
+    const appCoreDist = normalizePath(config.sys.path.join(config.distDir, appFileName, buildConditionals.fileName));
     ctx.filesToWrite[appCoreDist] = jsContent;
   }
+
+  return buildConditionals;
 }
 
 
@@ -123,30 +96,6 @@ export function wrapCoreJs(config: BuildConfig, jsContent: string) {
   ].join('');
 
   return output;
-}
-
-
-function getCoreBuilds(coreBuild: BuildConditionals) {
-  const coreBuilds: BuildConditionals[] = [];
-
-  // no custom slot
-  // without ssr parser
-  // es2015
-  coreBuilds.push({
-    ...coreBuild,
-    coreId: 'core'
-  });
-
-  // es5 gets everything
-  coreBuilds.push({
-    ...coreBuild,
-    coreId: 'core.pf',
-    es5: true,
-    customSlot: true,
-    polyfills: true
-  });
-
-  return coreBuilds;
 }
 
 

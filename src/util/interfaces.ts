@@ -287,10 +287,11 @@ export interface ModuleFile {
 
 export interface AppRegistry {
   namespace: string;
-  loader: string;
+  loader?: string;
   core?: string;
   corePolyfilled?: string;
   global?: string;
+  globalEs5?: string;
   components: LoadComponentRegistry[];
 }
 
@@ -362,8 +363,10 @@ export interface BuildConditionals {
 
   // svg
   svg: boolean;
-
 }
+
+
+export type SourceTarget = 'es5' | 'es2015';
 
 
 export interface BuildConfig {
@@ -515,7 +518,7 @@ export interface BuildContext {
   moduleFiles?: ModuleFiles;
   manifestBundles?: ManifestBundle[];
   jsFiles?: FilesMap;
-  jsEs5Files?: FilesMap;
+  jsFilesEs5?: FilesMap;
   cssFiles?: FilesMap;
   compiledFileCache?: ModuleBundles;
   moduleBundleOutputs?: ModuleBundles;
@@ -530,6 +533,7 @@ export interface BuildContext {
     core?: string;
     corePolyfilled?: string;
     global?: string;
+    globales5?: string;
     registryJson?: string;
     indexHtml?: string;
     components_d_ts?: string;
@@ -537,7 +541,6 @@ export interface BuildContext {
   };
   watcher?: FSWatcher;
   hasIndexHtml?: boolean;
-  buildConditionals?: BuildConditionals;
 
   isRebuild?: boolean;
   isChangeBuild?: boolean;

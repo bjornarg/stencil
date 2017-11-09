@@ -65,7 +65,7 @@ function writeFileInMemory(config: BuildConfig, ctx: BuildContext, tsCompilerOpt
     // cache the js content
     if (tsCompilerOptions.target === ts.ScriptTarget.ES5) {
       // es5 content
-      ctx.jsEs5Files[jsFilePath] = outputText;
+      ctx.jsFilesEs5[jsFilePath] = outputText;
 
     } else {
       // es2015 content (default)

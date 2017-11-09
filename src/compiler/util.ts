@@ -13,7 +13,7 @@ export function getBuildContext(ctx?: BuildContext) {
   ctx.appFiles = ctx.appFiles || {};
   ctx.moduleFiles = ctx.moduleFiles || {};
   ctx.jsFiles = ctx.jsFiles || {};
-  ctx.jsEs5Files = ctx.jsEs5Files || {};
+  ctx.jsFilesEs5 = ctx.jsFilesEs5 || {};
   ctx.cssFiles = ctx.cssFiles || {};
   ctx.dependentManifests = ctx.dependentManifests || {};
   ctx.compiledFileCache = ctx.compiledFileCache || {};
@@ -31,7 +31,6 @@ export function getBuildContext(ctx?: BuildContext) {
 export function resetBuildContext(ctx: BuildContext) {
   ctx.registry = {};
   ctx.manifest = {};
-  (ctx.buildConditionals as any) = {};
   ctx.diagnostics = [];
   ctx.sassBuildCount = 0;
   ctx.transpileBuildCount = 0;

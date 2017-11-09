@@ -188,14 +188,13 @@ function watchBuild(config: BuildConfig, ctx: BuildContext, requiresFullBuild: b
         ctx.changeHasNonComponentModules = false;
       }
     }
-
   }
 
   if (!ctx.isChangeBuild) {
     // completely clear out the cache
     ctx.moduleFiles = {};
     ctx.jsFiles = {};
-    ctx.jsEs5Files = {};
+    ctx.jsFilesEs5 = {};
     ctx.cssFiles = {};
     ctx.moduleBundleOutputs = {};
     ctx.styleSassUnscopedOutputs = {};

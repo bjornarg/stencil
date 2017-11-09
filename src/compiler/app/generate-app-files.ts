@@ -1,109 +1,59 @@
-import { AppRegistry, BuildConfig, BuildContext } from '../../util/interfaces';
+import { AppRegistry, BuildConfig, BuildContext, SourceTarget } from '../../util/interfaces';
 import { GLOBAL_NAME } from '../../util/constants';
 import { formatComponentRegistry } from '../../util/data-serialize';
 import { generateCore } from './app-core';
-import { generateAppGlobal, generateGlobalJs } from './app-global';
+import { generateAppGlobal, generateAppGlobalEs5 } from './app-global';
+import { generateAppRegistry } from './app-registry';
 import { generateLoader } from './app-loader';
 import { hasError, normalizePath } from '../util';
+import { setBuildConditionals } from './build-conditionals';
 
 
-export function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
-  const sys = config.sys;
-
+export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   if (hasError(ctx.diagnostics)) {
     return Promise.resolve();
   }
 
-  config.logger.debug(`build, generateAppFiles: ${config.namespace}`);
+  const timespan = config.logger.createTimeSpan(`generateAppFiles: ${config.namespace} start`, true);
 
-  const appFileName = getAppFileName(config);
-  const appLoader = `${appFileName}.js`;
-
+  // generaete the shared app registry object
   const appRegistry: AppRegistry = {
     namespace: config.namespace,
-    components: formatComponentRegistry(ctx.registry),
-    loader: `../${appLoader}`,
+    components: formatComponentRegistry(ctx.registry)
   };
 
-  // bundle the app's entry file (if one was provided)
-  return generateAppGlobal(config, ctx).then(globalJsContents => {
-    if (globalJsContents.length) {
-      appRegistry.global = `${appFileName}.${GLOBAL_NAME}.js`;
+  // normal es2015 build
+  const globalJsContents = await generateAppGlobal(config, ctx, appRegistry);
 
-      const globalJsContent = generateGlobalJs(config, globalJsContents);
+  // figure out which sections should be included in the core build
+  const buildConditionals = setBuildConditionals(ctx, ctx.manifestBundles);
+  buildConditionals.coreId = 'core';
 
-      ctx.appFiles.global = globalJsContent;
+  await generateCore(config, ctx, globalJsContents, buildConditionals);
+  appRegistry.core = buildConditionals.fileName;
 
-      if (config.generateWWW) {
-        const appGlobalWWWFilePath = getGlobalWWW(config);
 
-        config.logger.debug(`build, app global www: ${appGlobalWWWFilePath}`);
-        ctx.filesToWrite[appGlobalWWWFilePath] = globalJsContent;
-      }
+  if (config.es5Fallback) {
+    // es5 build (if needed)
+    const globalJsContentsEs5 = await generateAppGlobalEs5(config, ctx, appRegistry);
 
-      if (config.generateDistribution) {
-        const appGlobalDistFilePath = getGlobalDist(config);
+    const buildConditionalsEs5 = setBuildConditionals(ctx, ctx.manifestBundles);
+    buildConditionalsEs5.coreId = 'core.pf';
+    buildConditionalsEs5.es5 = true;
+    buildConditionalsEs5.polyfills = true;
+    buildConditionalsEs5.customSlot = true;
 
-        config.logger.debug(`build, app global dist: ${appGlobalDistFilePath}`);
-        ctx.filesToWrite[appGlobalDistFilePath] = globalJsContent;
-      }
-    }
+    await generateCore(config, ctx, globalJsContentsEs5, buildConditionalsEs5);
+    appRegistry.corePolyfilled = buildConditionalsEs5.fileName;
+  }
 
-    return generateCore(config, ctx, globalJsContents);
+  // create a json file for the app registry
+  await generateAppRegistry(config, ctx, appRegistry);
 
-  }).then(coreBuilds => {
-    // all of the app core files have been generated
-    appRegistry.core = coreBuilds.find(c => c.coreId === 'core').fileName;
-    appRegistry.corePolyfilled = coreBuilds.find(c => c.coreId === 'core.pf').fileName;
+  // create the loader after creating the loader file name
+  await generateLoader(config, ctx, appRegistry, appRegistry.components);
 
-  }).then(() => {
-    // create the loader after creating the loader file name
-    return generateLoader(config, appRegistry.core, appRegistry.corePolyfilled, appRegistry.components).then(loaderContent => {
-      // write the app loader file
-      if (ctx.appFiles.loader !== loaderContent) {
-        // app loader file is actually different from our last saved version
-        config.logger.debug(`build, app loader: ${appLoader}`);
-        ctx.appFiles.loader = loaderContent;
-
-        if (config.generateWWW) {
-          const appLoaderWWW = normalizePath(sys.path.join(config.buildDir, appLoader));
-          ctx.filesToWrite[appLoaderWWW] = loaderContent;
-        }
-
-        if (config.generateDistribution) {
-          const appLoaderDist = normalizePath(sys.path.join(config.distDir, appLoader));
-          ctx.filesToWrite[appLoaderDist] = loaderContent;
-        }
-
-        ctx.appFileBuildCount++;
-      }
-    });
-
-  }).then(() => {
-    // create a json file for the app registry
-    const registryJson = JSON.stringify(appRegistry, null, 2);
-    if (ctx.appFiles.registryJson !== registryJson) {
-      // app registry json file is actually different from our last saved version
-      ctx.appFiles.registryJson = registryJson;
-
-      if (config.generateWWW) {
-        const appRegistryWWW = getRegistryJsonWWW(config);
-        config.logger.debug(`build, app www registry: ${appRegistryWWW}`);
-        ctx.filesToWrite[appRegistryWWW] = registryJson;
-      }
-
-      if (config.generateDistribution) {
-        const appRegistryDist = getRegistryJsonDist(config);
-        config.logger.debug(`build, app dist registry: ${appRegistryDist}`);
-        ctx.filesToWrite[appRegistryDist] = registryJson;
-      }
-
-      ctx.appFileBuildCount++;
-    }
-
-  }).catch(err => {
-    config.logger.error('generateAppFiles', err);
-  });
+  timespan.finish(`generateAppFiles: ${config.namespace} finished`);
 }
 
 
@@ -124,15 +74,15 @@ export function getRegistryJsonDist(config: BuildConfig) {
 }
 
 
-export function getGlobalWWW(config: BuildConfig) {
+export function getGlobalWWW(config: BuildConfig, sourceTarget: SourceTarget) {
   const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.buildDir, appFileName, `${appFileName}.${GLOBAL_NAME}.js`));
+  return normalizePath(config.sys.path.join(config.buildDir, appFileName, `${appFileName}.${GLOBAL_NAME}${sourceTarget === 'es5' ? '.es5' : ''}.js`));
 }
 
 
-export function getGlobalDist(config: BuildConfig) {
+export function getGlobalDist(config: BuildConfig, sourceTarget: SourceTarget) {
   const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.distDir, appFileName, `${appFileName}.${GLOBAL_NAME}.js`));
+  return normalizePath(config.sys.path.join(config.distDir, appFileName, `${appFileName}.${GLOBAL_NAME}${sourceTarget === 'es5' ? '.es5' : ''}.js`));
 }
 
 
