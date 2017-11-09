@@ -1,31 +1,38 @@
-import { BuildConfig, BuildContext, ComponentMeta, ComponentRegistry, CompiledModeStyles, ModuleFile, ManifestBundle } from '../../util/interfaces';
-import { componentRequiresScopedStyles, generatePreamble, normalizePath } from '../util';
+import { BuildConfig, BuildContext, ComponentMeta, ComponentRegistry, CompiledModeStyles, ModuleFile, ManifestBundle, SourceTarget } from '../../util/interfaces';
+import { componentRequiresScopedStyles, generatePreamble, pathJoin } from '../util';
 import { DEFAULT_STYLE_MODE } from '../../util/constants';
 import { formatLoadComponents, formatLoadStyles } from '../../util/data-serialize';
-import { getAppFileName } from '../app/app-file-naming';
+import { getAppFileName, getBundleFileName, getAppWWWBuildDir } from '../app/app-file-naming';
 
 
-export function generateBundles(config: BuildConfig, ctx: BuildContext, manifestBundles: ManifestBundle[]) {
-  const timeSpan = config.logger.createTimeSpan(`generate bundles started`);
+export function generateBundles(config: BuildConfig, ctx: BuildContext, manifestBundles: ManifestBundle[], sourceTarget: SourceTarget) {
+  const timeSpan = config.logger.createTimeSpan(`generate ${sourceTarget} bundles started`);
 
   manifestBundles.forEach(manifestBundle => {
-    generateBundleFiles(config, ctx, manifestBundle);
+    generateBundleFiles(config, ctx, manifestBundle, sourceTarget);
   });
 
   ctx.registry = generateComponentRegistry(manifestBundles);
 
-  timeSpan.finish(`generate bundles finished`);
+  timeSpan.finish(`generate ${sourceTarget} bundles finished`);
 
   return manifestBundles;
 }
 
 
-function generateBundleFiles(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle) {
+function generateBundleFiles(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, sourceTarget: SourceTarget) {
   manifestBundle.moduleFiles.forEach(moduleFile => {
     moduleFile.cmpMeta.bundleIds = {};
   });
 
-  let moduleText = formatLoadComponents(config.namespace, MODULE_ID, manifestBundle.compiledModuleText, manifestBundle.moduleFiles);
+  const compiledModuleText = sourceTarget === 'es5' ? manifestBundle.compiledModuleTextEs5 : manifestBundle.compiledModuleText;
+
+  let moduleText = formatLoadComponents(
+    config.namespace,
+    MODULE_ID,
+    compiledModuleText,
+    manifestBundle.moduleFiles
+  );
 
   if (config.minifyJs) {
     // minify js
@@ -48,23 +55,23 @@ function generateBundleFiles(config: BuildConfig, ctx: BuildContext, manifestBun
       const bundleStyles = manifestBundle.compiledModeStyles.filter(cms => cms.modeName === DEFAULT_STYLE_MODE);
       bundleStyles.push(...manifestBundle.compiledModeStyles.filter(cms => cms.modeName === modeName));
 
-      writeBundleFile(config, ctx, manifestBundle, moduleText, modeName, bundleStyles);
+      writeBundleFile(config, ctx, manifestBundle, moduleText, modeName, bundleStyles, sourceTarget);
     });
 
   } else if (modes.length) {
     modes.forEach(modeName => {
       const bundleStyles = manifestBundle.compiledModeStyles.filter(cms => cms.modeName === modeName);
 
-      writeBundleFile(config, ctx, manifestBundle, moduleText, modeName, bundleStyles);
+      writeBundleFile(config, ctx, manifestBundle, moduleText, modeName, bundleStyles, sourceTarget);
     });
 
   } else {
-    writeBundleFile(config, ctx, manifestBundle, moduleText, null, []);
+    writeBundleFile(config, ctx, manifestBundle, moduleText, null, [], sourceTarget);
   }
 }
 
 
-export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, moduleText: string, modeName: string, bundleStyles: CompiledModeStyles[]) {
+export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, moduleText: string, modeName: string, bundleStyles: CompiledModeStyles[], sourceTarget: SourceTarget) {
   const unscopedStyleText = formatLoadStyles(config.namespace, bundleStyles, false);
 
   const unscopedContents = [
@@ -81,24 +88,29 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
 
   unscopedContent = replaceDefaulBundleId(unscopedContent, bundleId);
 
-  const unscopedFileName = getBundleFileName(bundleId, false);
+  const unscopedFileName = getBundleFileName(bundleId, false, sourceTarget);
 
   setBundleModeIds(manifestBundle.moduleFiles, modeName, bundleId);
 
-  const unscopedWwwBuildPath = normalizePath(config.sys.path.join(
-    config.buildDir,
-    getAppFileName(config),
-    unscopedFileName
-  ));
+  const unscopedWwwBuildPath = pathJoin(config, getAppWWWBuildDir(config), unscopedFileName);
 
   // use wwwFilePath as the cache key
-  if (ctx.compiledFileCache[unscopedWwwBuildPath] === unscopedContent) {
-    // unchanged, no need to resave
-    return;
-  }
+  if (sourceTarget === 'es5') {
+    if (ctx.compiledFileCacheEs5[unscopedWwwBuildPath] === unscopedContent) {
+      // unchanged es5, no need to resave
+      return;
+    }
+    // cache for later
+    ctx.compiledFileCacheEs5[unscopedWwwBuildPath] = unscopedContent;
 
-  // cache for later
-  ctx.compiledFileCache[unscopedWwwBuildPath] = unscopedContent;
+  } else {
+    if (ctx.compiledFileCache[unscopedWwwBuildPath] === unscopedContent) {
+      // unchanged es2015, no need to resave
+      return;
+    }
+    // cache for later
+    ctx.compiledFileCache[unscopedWwwBuildPath] = unscopedContent;
+  }
 
   if (config.generateWWW) {
     // write the unscoped css to the www build
@@ -107,11 +119,12 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
 
   if (config.generateDistribution) {
     // write the unscoped css to the dist build
-    const unscopedDistPath = normalizePath(config.sys.path.join(
+    const unscopedDistPath = pathJoin(
+      config,
       config.distDir,
       getAppFileName(config),
       unscopedFileName
-    ));
+    );
     ctx.filesToWrite[unscopedDistPath] = unscopedContent;
   }
 
@@ -129,25 +142,20 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
 
     const scopedFileContent = replaceDefaulBundleId(scopedContents.join('\n'), bundleId);
 
-    const scopedFileName = getBundleFileName(bundleId, true);
+    const scopedFileName = getBundleFileName(bundleId, true, sourceTarget);
 
     if (config.generateWWW) {
       // write the scoped css to the www build
-      const scopedWwwPath = normalizePath(config.sys.path.join(
-        config.buildDir,
-        getAppFileName(config),
+      const scopedWwwPath = pathJoin(config,
+        getAppWWWBuildDir(config),
         scopedFileName
-      ));
+      );
       ctx.filesToWrite[scopedWwwPath] = scopedFileContent;
     }
 
     if (config.generateDistribution) {
       // write the scoped css to the dist build
-      const scopedDistPath = normalizePath(config.sys.path.join(
-        config.distDir,
-        getAppFileName(config),
-        scopedFileName
-      ));
+      const scopedDistPath = pathJoin(config, scopedFileName);
       ctx.filesToWrite[scopedDistPath] = scopedFileContent;
     }
   }
@@ -185,11 +193,6 @@ export function generateComponentRegistry(manifestBundles: ManifestBundle[]) {
   });
 
   return registry;
-}
-
-
-export function getBundleFileName(bundleId: string, scoped: boolean) {
-  return `${bundleId}${scoped ? '.sc' : ''}.js`;
 }
 
 

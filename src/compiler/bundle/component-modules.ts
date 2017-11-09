@@ -1,9 +1,9 @@
 import { BuildConfig, BuildContext, FilesMap, ManifestBundle, ModuleFile, SourceTarget } from '../../util/interfaces';
-import { hasError, normalizePath } from '../util';
 import { buildExpressionReplacer } from '../build/replacer';
-import { dashToPascalCase } from '../../util/helpers';
-import localResolution from './rollup-plugins/local-resolution';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
+import { dashToPascalCase } from '../../util/helpers';
+import { hasError, normalizePath } from '../util';
+import localResolution from './rollup-plugins/local-resolution';
 
 
 export function generateComponentModules(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle): Promise<any> {

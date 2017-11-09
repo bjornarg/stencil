@@ -17,6 +17,7 @@ export function getBuildContext(ctx?: BuildContext) {
   ctx.cssFiles = ctx.cssFiles || {};
   ctx.dependentManifests = ctx.dependentManifests || {};
   ctx.compiledFileCache = ctx.compiledFileCache || {};
+  ctx.compiledFileCacheEs5 = ctx.compiledFileCacheEs5 || {};
   ctx.moduleBundleOutputs = ctx.moduleBundleOutputs || {};
   ctx.moduleBundleOutputsEs5 = ctx.moduleBundleOutputsEs5 || {};
   ctx.styleSassUnscopedOutputs = ctx.styleSassUnscopedOutputs || {};
@@ -374,6 +375,11 @@ export function hasError(diagnostics: Diagnostic[]) {
 
 export function componentRequiresScopedStyles(encapsulation: ENCAPSULATION) {
   return (encapsulation === ENCAPSULATION.ScopedCss || encapsulation === ENCAPSULATION.ShadowDom);
+}
+
+
+export function pathJoin(config: BuildConfig, ...paths: string[]) {
+  return normalizePath(config.sys.path.join.apply(config.sys.path, paths));
 }
 
 

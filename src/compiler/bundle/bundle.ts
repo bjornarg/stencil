@@ -35,7 +35,11 @@ export function bundle(config: BuildConfig, ctx: BuildContext) {
   ]).then(() => {
     // both styles and modules are done bundling
     // generate the actual files to write
-    generateBundles(config, ctx, ctx.manifestBundles);
+    generateBundles(config, ctx, ctx.manifestBundles, 'es2015');
+
+    if (config.es5Fallback) {
+      generateBundles(config, ctx, ctx.manifestBundles, 'es5');
+    }
 
   }).catch(err => {
     catchError(ctx.diagnostics, err);
@@ -170,6 +174,7 @@ function createManifestBundle(moduleFiles: ModuleFile[], priority: PRIORITY) {
     moduleFiles: moduleFiles,
     compiledModeStyles: [],
     compiledModuleText: '',
+    compiledModuleTextEs5: '',
     priority: priority
   };
   return manifestBundle;

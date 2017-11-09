@@ -1,7 +1,7 @@
 import { AppRegistry, BuildConfig, BuildContext, LoadComponentRegistry } from '../../util/interfaces';
 import { LOADER_NAME, APP_NAMESPACE_REGEX } from '../../util/constants';
 import { generatePreamble, normalizePath } from '../util';
-import { getAppFileName } from './app-file-naming';
+import { getLoaderFileName } from './app-file-naming';
 import { getAppPublicPath } from './app-core';
 
 
@@ -10,12 +10,12 @@ export async function generateLoader(
   ctx: BuildContext,
   appRegistry: AppRegistry
 ) {
-  const appFileName = getAppFileName(config);
-  const appLoader = `${appFileName}.js`;
-  appRegistry.loader = `../${appLoader}`;
+  const appLoaderFileName = getLoaderFileName(config);
+  appRegistry.loader = `../${appLoaderFileName}`;
 
+  const clientLoaderSource = `${LOADER_NAME}.js`;
 
-  let loaderContent = await config.sys.getClientCoreFile({ staticName: `${LOADER_NAME}.js` });
+  let loaderContent = await config.sys.getClientCoreFile({ staticName: clientLoaderSource });
 
   loaderContent = injectAppIntoLoader(
     config,
@@ -25,38 +25,36 @@ export async function generateLoader(
     loaderContent
   );
 
-  if (config.minifyJs) {
-    // minify the loader
-    const minifyJsResults = config.sys.minifyJs(loaderContent);
-    minifyJsResults.diagnostics.forEach(d => {
-      config.logger[d.level](d.messageText);
-    });
-    if (!minifyJsResults.diagnostics.length) {
-      loaderContent = minifyJsResults.output;
-    }
-  }
-
   // concat the app's loader code
-  const appCode: string[] = [
+  loaderContent = [
     generatePreamble(config),
     loaderContent
-  ];
-
-  loaderContent = appCode.join('').trim();
+  ].join('').trim();
 
   // write the app loader file
   if (ctx.appFiles.loader !== loaderContent) {
     // app loader file is actually different from our last saved version
-    config.logger.debug(`build, app loader: ${appLoader}`);
+    config.logger.debug(`build, app loader: ${appLoaderFileName}`);
     ctx.appFiles.loader = loaderContent;
 
+    if (config.minifyJs) {
+      // minify the loader
+      const minifyJsResults = config.sys.minifyJs(loaderContent);
+      minifyJsResults.diagnostics.forEach(d => {
+        config.logger[d.level](d.messageText);
+      });
+      if (!minifyJsResults.diagnostics.length) {
+        loaderContent = minifyJsResults.output;
+      }
+    }
+
     if (config.generateWWW) {
-      const appLoaderWWW = normalizePath(config.sys.path.join(config.buildDir, appLoader));
+      const appLoaderWWW = normalizePath(config.sys.path.join(config.buildDir, appLoaderFileName));
       ctx.filesToWrite[appLoaderWWW] = loaderContent;
     }
 
     if (config.generateDistribution) {
-      const appLoaderDist = normalizePath(config.sys.path.join(config.distDir, appLoader));
+      const appLoaderDist = normalizePath(config.sys.path.join(config.distDir, appLoaderFileName));
       ctx.filesToWrite[appLoaderDist] = loaderContent;
     }
 

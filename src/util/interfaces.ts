@@ -521,6 +521,7 @@ export interface BuildContext {
   jsFilesEs5?: FilesMap;
   cssFiles?: FilesMap;
   compiledFileCache?: ModuleBundles;
+  compiledFileCacheEs5?: ModuleBundles;
   moduleBundleOutputs?: ModuleBundles;
   moduleBundleOutputsEs5?: ModuleBundles;
   styleSassUnscopedOutputs?: ModuleBundles;
