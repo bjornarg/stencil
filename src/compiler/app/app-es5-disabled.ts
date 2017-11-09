@@ -40,7 +40,7 @@ function getDisabledMessageScript() {
 
   <h2>Developers:</h2>
   <ul>
-    <li>ES5 builds are disabled <strong>during development</strong> in order to speed up build times.</li>
+    <li>ES5 builds are disabled <strong>during development</strong> to take advantage of 2x faster build times.</li>
     <li>Please see the example below or our <a href="https://stenciljs.com/docs/stencil-config" target="_blank">config docs</a> if you would like to develop on a browser that does not fully support ES2015 and custom elements.</li>
     <li>Note that by default, ES5 builds and polyfills are enabled during production builds.</li>
     <li>When testing browsers it is recommended to always test in production mode, and ES5 builds should always be enabled during production builds.</li>
