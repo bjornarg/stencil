@@ -197,6 +197,7 @@ function watchBuild(config: BuildConfig, ctx: BuildContext, requiresFullBuild: b
     ctx.jsFilesEs5 = {};
     ctx.cssFiles = {};
     ctx.moduleBundleOutputs = {};
+    ctx.moduleBundleOutputsEs5 = {};
     ctx.styleSassUnscopedOutputs = {};
   }
 

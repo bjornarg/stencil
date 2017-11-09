@@ -1,11 +1,10 @@
-import { AppRegistry, BuildConfig, BuildContext, SourceTarget } from '../../util/interfaces';
-import { GLOBAL_NAME } from '../../util/constants';
+import { AppRegistry, BuildConfig, BuildContext } from '../../util/interfaces';
 import { formatComponentRegistry } from '../../util/data-serialize';
 import { generateCore } from './app-core';
 import { generateAppGlobal, generateAppGlobalEs5 } from './app-global';
 import { generateAppRegistry } from './app-registry';
 import { generateLoader } from './app-loader';
-import { hasError, normalizePath } from '../util';
+import { hasError } from '../util';
 import { setBuildConditionals } from './build-conditionals';
 
 
@@ -29,8 +28,8 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   const buildConditionals = setBuildConditionals(ctx, ctx.manifestBundles);
   buildConditionals.coreId = 'core';
 
-  await generateCore(config, ctx, globalJsContents, buildConditionals);
-  appRegistry.core = buildConditionals.fileName;
+  const coreFilename = await generateCore(config, ctx, globalJsContents, buildConditionals);
+  appRegistry.core = coreFilename;
 
 
   if (config.es5Fallback) {
@@ -43,55 +42,15 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
     buildConditionalsEs5.polyfills = true;
     buildConditionalsEs5.customSlot = true;
 
-    await generateCore(config, ctx, globalJsContentsEs5, buildConditionalsEs5);
-    appRegistry.corePolyfilled = buildConditionalsEs5.fileName;
+    const coreFilename = await generateCore(config, ctx, globalJsContentsEs5, buildConditionalsEs5);
+    appRegistry.corePolyfilled = coreFilename;
   }
 
   // create a json file for the app registry
   await generateAppRegistry(config, ctx, appRegistry);
 
   // create the loader after creating the loader file name
-  await generateLoader(config, ctx, appRegistry, appRegistry.components);
+  await generateLoader(config, ctx, appRegistry);
 
   timespan.finish(`generateAppFiles: ${config.namespace} finished`);
-}
-
-
-export function getAppFileName(config: BuildConfig) {
-  return config.namespace.toLowerCase();
-}
-
-
-export function getRegistryJsonWWW(config: BuildConfig) {
-  const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.buildDir, appFileName, `${appFileName}.registry.json`));
-}
-
-
-export function getRegistryJsonDist(config: BuildConfig) {
-  const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.distDir, `${appFileName}.registry.json`));
-}
-
-
-export function getGlobalWWW(config: BuildConfig, sourceTarget: SourceTarget) {
-  const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.buildDir, appFileName, `${appFileName}.${GLOBAL_NAME}${sourceTarget === 'es5' ? '.es5' : ''}.js`));
-}
-
-
-export function getGlobalDist(config: BuildConfig, sourceTarget: SourceTarget) {
-  const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.distDir, appFileName, `${appFileName}.${GLOBAL_NAME}${sourceTarget === 'es5' ? '.es5' : ''}.js`));
-}
-
-
-export function getAppWWWBuildDir(config: BuildConfig) {
-  const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.buildDir, appFileName));
-}
-
-export function getAppDistDir(config: BuildConfig) {
-  const appFileName = getAppFileName(config);
-  return normalizePath(config.sys.path.join(config.distDir, appFileName));
 }

@@ -1,15 +1,14 @@
 import { AppRegistry, BuildConfig, BuildContext, LoadComponentRegistry } from '../../util/interfaces';
 import { LOADER_NAME, APP_NAMESPACE_REGEX } from '../../util/constants';
 import { generatePreamble, normalizePath } from '../util';
-import { getAppFileName } from './generate-app-files';
+import { getAppFileName } from './app-file-naming';
 import { getAppPublicPath } from './app-core';
 
 
 export async function generateLoader(
   config: BuildConfig,
   ctx: BuildContext,
-  appRegistry: AppRegistry,
-  componentRegistry: LoadComponentRegistry[]
+  appRegistry: AppRegistry
 ) {
   const appFileName = getAppFileName(config);
   const appLoader = `${appFileName}.js`;
@@ -22,7 +21,7 @@ export async function generateLoader(
     config,
     appRegistry.core,
     appRegistry.corePolyfilled,
-    componentRegistry,
+    appRegistry.components,
     loaderContent
   );
 
@@ -63,6 +62,8 @@ export async function generateLoader(
 
     ctx.appFileBuildCount++;
   }
+
+  return loaderContent;
 }
 
 

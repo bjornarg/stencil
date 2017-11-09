@@ -13,6 +13,7 @@ export function generateComponentModules(config: BuildConfig, ctx: BuildContext,
     // don't bother bundling if this is a change build but
     // none of the changed files are modules or components
     manifestBundle.compiledModuleText = ctx.moduleBundleOutputs[bundleCacheKey];
+    manifestBundle.compiledModuleTextEs5 = ctx.moduleBundleOutputsEs5[bundleCacheKey];
     return Promise.resolve();
   }
 
@@ -63,21 +64,44 @@ function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle
       format: 'es'
 
     }).then(results => {
-      // module bundling finished, assign its content to the user's bundle
-      // wrap our component code with our own iife
-      manifestBundle.compiledModuleText = wrapComponentImports(results.code.trim());
 
-      // replace build time expressions, like process.env.NODE_ENV === 'production'
-      // with a hard coded boolean
-      manifestBundle.compiledModuleText = buildExpressionReplacer(config, manifestBundle.compiledModuleText);
+      bundleComponentsResults(config, ctx, manifestBundle, bundleCacheKey, sourceTarget, results.code.trim());
 
-      // cache for later
-      ctx.moduleBundleOutputs[bundleCacheKey] = manifestBundle.compiledModuleText;
-
-      // keep track of module bundling for testing
-      ctx.moduleBundleCount++;
     });
   });
+}
+
+
+function bundleComponentsResults(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, bundleCacheKey: string, sourceTarget: SourceTarget, resultsCode: string) {
+  if (sourceTarget === 'es5') {
+    // es5
+    // module bundling finished, assign its content to the user's bundle
+    // wrap our component code with our own iife
+    manifestBundle.compiledModuleTextEs5 = wrapComponentImports(resultsCode);
+
+    // replace build time expressions, like process.env.NODE_ENV === 'production'
+    // with a hard coded boolean
+    manifestBundle.compiledModuleTextEs5 = buildExpressionReplacer(config, manifestBundle.compiledModuleText);
+
+    // cache for later
+    ctx.moduleBundleOutputsEs5[bundleCacheKey] = manifestBundle.compiledModuleTextEs5;
+
+  } else {
+    // es2015
+    // module bundling finished, assign its content to the user's bundle
+    // wrap our component code with our own iife
+    manifestBundle.compiledModuleText = wrapComponentImports(resultsCode);
+
+    // replace build time expressions, like process.env.NODE_ENV === 'production'
+    // with a hard coded boolean
+    manifestBundle.compiledModuleText = buildExpressionReplacer(config, manifestBundle.compiledModuleText);
+
+    // cache for later
+    ctx.moduleBundleOutputs[bundleCacheKey] = manifestBundle.compiledModuleText;
+  }
+
+  // keep track of module bundling for testing
+  ctx.moduleBundleCount++;
 }
 
 

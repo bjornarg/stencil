@@ -1,9 +1,8 @@
 import { AppRegistry, BuildConfig, BuildContext, SourceTarget } from '../../util/interfaces';
 import { buildExpressionReplacer } from '../build/replacer';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
-import { getAppFileName, getGlobalDist, getGlobalWWW } from './generate-app-files';
 import { getAppPublicPath } from './app-core';
-import { GLOBAL_NAME } from '../../util/constants';
+import { getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
 import { hasError, generatePreamble } from '../util';
 import { transpiledInMemoryPlugin } from '../bundle/component-modules';
 
@@ -12,8 +11,7 @@ export async function generateAppGlobal(config: BuildConfig, ctx: BuildContext, 
   const globalJsContents = await generateAppGlobalContents(config, ctx, 'es2015');
 
   if (globalJsContents.length) {
-    const appFileName = getAppFileName(config);
-    appRegistry.global = `${appFileName}.${GLOBAL_NAME}.js`;
+    appRegistry.global = getGlobalFileName(config, 'es2015');
 
     const globalJsContent = generateGlobalJs(config, globalJsContents);
 
@@ -42,8 +40,7 @@ export async function generateAppGlobalEs5(config: BuildConfig, ctx: BuildContex
   const globalJsContentsEs5 = await generateAppGlobalContents(config, ctx, 'es5');
 
   if (globalJsContentsEs5.length) {
-    const appFileName = getAppFileName(config);
-    appRegistry.globalEs5 = `${appFileName}.${GLOBAL_NAME}.es5.js`;
+    appRegistry.globalEs5 = getGlobalFileName(config, 'es5');
 
     const globalJsContentEs5 = generateGlobalJs(config, globalJsContentsEs5);
 

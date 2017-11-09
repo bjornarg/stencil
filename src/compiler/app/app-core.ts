@@ -1,7 +1,7 @@
 import { BuildConfig, BuildContext, BuildConditionals } from '../../util/interfaces';
 import { buildCoreContent } from './build-core-content';
 import { generatePreamble, normalizePath } from '../util';
-import { getAppFileName } from './generate-app-files';
+import { getAppFileName } from './app-file-naming';
 
 
 export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals) {
@@ -43,30 +43,30 @@ export async function generateCore(config: BuildConfig, ctx: BuildContext, globa
   }
 
   const appFileName = getAppFileName(config);
-  buildConditionals.fileName = getBuildFilename(config, appFileName, buildConditionals.coreId, jsContent);
+  const coreFilename = getBuildFilename(config, appFileName, buildConditionals.coreId, jsContent);
 
   if (ctx.appFiles[buildConditionals.coreId] === jsContent) {
     // build is identical from last, no need to resave
-    return buildConditionals;
+    return coreFilename;
   }
   ctx.appFiles[buildConditionals.coreId] = jsContent;
 
   // update the app core filename within the content
-  jsContent = jsContent.replace(APP_CORE_FILENAME_PLACEHOLDER, buildConditionals.fileName);
+  jsContent = jsContent.replace(APP_CORE_FILENAME_PLACEHOLDER, coreFilename);
 
   if (config.generateWWW) {
     // write the www/build/ app core file
-    const appCoreWWW = normalizePath(config.sys.path.join(config.buildDir, appFileName, buildConditionals.fileName));
+    const appCoreWWW = normalizePath(config.sys.path.join(config.buildDir, appFileName, coreFilename));
     ctx.filesToWrite[appCoreWWW] = jsContent;
   }
 
   if (config.generateDistribution) {
     // write the dist/ app core file
-    const appCoreDist = normalizePath(config.sys.path.join(config.distDir, appFileName, buildConditionals.fileName));
+    const appCoreDist = normalizePath(config.sys.path.join(config.distDir, appFileName, coreFilename));
     ctx.filesToWrite[appCoreDist] = jsContent;
   }
 
-  return buildConditionals;
+  return coreFilename;
 }
 
 

@@ -189,7 +189,6 @@ export function validateBuildConfig(config: BuildConfig, setEnvVariables?: boole
       config.es5Fallback = true;
     }
   }
-  config.es5Fallback = false;
 
   config.emptyDist = !!config.emptyDist;
   config.emptyWWW = !!config.emptyWWW;

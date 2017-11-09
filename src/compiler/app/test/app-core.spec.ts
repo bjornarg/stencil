@@ -4,7 +4,7 @@ import { generatePreamble } from '../../util';
 import { mockLogger, mockStencilSystem } from '../../../testing/mocks';
 
 import * as core from '../app-core';
-import { getAppFileName } from '../generate-app-files';
+import { getAppFileName } from '../app-file-naming';
 
 
 describe('app-core', () => {

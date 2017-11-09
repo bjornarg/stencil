@@ -1,5 +1,5 @@
 import { AppRegistry, BuildConfig, BuildContext } from '../../util/interfaces';
-import { getRegistryJsonDist, getRegistryJsonWWW } from './generate-app-files';
+import { getRegistryJsonDist, getRegistryJsonWWW } from './app-file-naming';
 
 
 export async function generateAppRegistry(config: BuildConfig, ctx: BuildContext, appRegistry: AppRegistry) {

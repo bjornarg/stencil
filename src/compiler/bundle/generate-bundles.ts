@@ -2,7 +2,7 @@ import { BuildConfig, BuildContext, ComponentMeta, ComponentRegistry, CompiledMo
 import { componentRequiresScopedStyles, generatePreamble, normalizePath } from '../util';
 import { DEFAULT_STYLE_MODE } from '../../util/constants';
 import { formatLoadComponents, formatLoadStyles } from '../../util/data-serialize';
-import { getAppFileName } from '../app/generate-app-files';
+import { getAppFileName } from '../app/app-file-naming';
 
 
 export function generateBundles(config: BuildConfig, ctx: BuildContext, manifestBundles: ManifestBundle[]) {

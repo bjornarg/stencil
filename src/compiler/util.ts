@@ -18,6 +18,7 @@ export function getBuildContext(ctx?: BuildContext) {
   ctx.dependentManifests = ctx.dependentManifests || {};
   ctx.compiledFileCache = ctx.compiledFileCache || {};
   ctx.moduleBundleOutputs = ctx.moduleBundleOutputs || {};
+  ctx.moduleBundleOutputsEs5 = ctx.moduleBundleOutputsEs5 || {};
   ctx.styleSassUnscopedOutputs = ctx.styleSassUnscopedOutputs || {};
   ctx.styleSassScopedOutputs = ctx.styleSassScopedOutputs || {};
   ctx.styleCssUnscopedOutputs = ctx.styleCssUnscopedOutputs || {};

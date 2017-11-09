@@ -306,6 +306,7 @@ export interface ManifestBundle {
   moduleFiles: ModuleFile[];
   compiledModeStyles?: CompiledModeStyles[];
   compiledModuleText?: string;
+  compiledModuleTextEs5?: string;
   priority?: PRIORITY;
 }
 
@@ -322,7 +323,6 @@ export interface CompiledModeStyles {
 
 export interface BuildConditionals {
   coreId?: 'core' | 'core.pf';
-  fileName?: string;
   polyfills?: boolean;
   verboseError: boolean;
   es5?: boolean;
@@ -522,6 +522,7 @@ export interface BuildContext {
   cssFiles?: FilesMap;
   compiledFileCache?: ModuleBundles;
   moduleBundleOutputs?: ModuleBundles;
+  moduleBundleOutputsEs5?: ModuleBundles;
   styleSassUnscopedOutputs?: ModuleBundles;
   styleSassScopedOutputs?: ModuleBundles;
   styleCssUnscopedOutputs?: ModuleBundles;
