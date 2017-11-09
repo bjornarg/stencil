@@ -6,7 +6,7 @@ import { getAppFileName, getBundleFileName, getAppWWWBuildDir } from '../app/app
 
 
 export function generateBundles(config: BuildConfig, ctx: BuildContext, manifestBundles: ManifestBundle[], sourceTarget: SourceTarget) {
-  const timeSpan = config.logger.createTimeSpan(`generate ${sourceTarget} bundles started`);
+  const timeSpan = config.logger.createTimeSpan(`generate ${sourceTarget} bundles started`, true);
 
   manifestBundles.forEach(manifestBundle => {
     generateBundleFiles(config, ctx, manifestBundle, sourceTarget);

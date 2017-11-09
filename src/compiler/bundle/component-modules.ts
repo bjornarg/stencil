@@ -81,7 +81,7 @@ function bundleComponentsResults(config: BuildConfig, ctx: BuildContext, manifes
 
     // replace build time expressions, like process.env.NODE_ENV === 'production'
     // with a hard coded boolean
-    manifestBundle.compiledModuleTextEs5 = buildExpressionReplacer(config, manifestBundle.compiledModuleText);
+    manifestBundle.compiledModuleTextEs5 = buildExpressionReplacer(config, manifestBundle.compiledModuleTextEs5);
 
     // cache for later
     ctx.moduleBundleOutputsEs5[bundleCacheKey] = manifestBundle.compiledModuleTextEs5;

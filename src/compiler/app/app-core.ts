@@ -1,10 +1,10 @@
-import { BuildConfig, BuildContext, BuildConditionals, SourceTarget } from '../../util/interfaces';
+import { BuildConfig, BuildContext, BuildConditionals } from '../../util/interfaces';
 import { buildCoreContent } from './build-core-content';
 import { generatePreamble, pathJoin } from '../util';
 import { getAppPublicPath, getAppDistDir, getAppWWWBuildDir, getCoreFilename } from './app-file-naming';
 
 
-export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals, sourceTarget: SourceTarget) {
+export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals) {
   // mega-minify the core w/ property renaming, but not the user's globals
   // hardcode which features should and should not go in the core builds
   // process the transpiled code by removing unused code and minify when configured to do so
@@ -42,7 +42,7 @@ export async function generateCore(config: BuildConfig, ctx: BuildContext, globa
     jsContent = polyfillsContent + '\n' + jsContent;
   }
 
-  const coreFilename = getCoreFilename(config, buildConditionals.coreId, jsContent, sourceTarget);
+  const coreFilename = getCoreFilename(config, buildConditionals.coreId, jsContent);
 
   if (ctx.appFiles[buildConditionals.coreId] === jsContent) {
     // build is identical from last, no need to resave

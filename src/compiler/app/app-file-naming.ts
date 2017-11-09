@@ -54,7 +54,7 @@ export function getGlobalDist(config: BuildConfig, sourceTarget: SourceTarget) {
 }
 
 
-export function getCoreFilename(config: BuildConfig, coreId: string, jsContent: string, sourceTarget: SourceTarget) {
+export function getCoreFilename(config: BuildConfig, coreId: string, jsContent: string) {
   const appFileName = getAppFileName(config);
   if (config.hashFileNames) {
     // prod mode renames the core file with its hashed content
@@ -63,7 +63,7 @@ export function getCoreFilename(config: BuildConfig, coreId: string, jsContent: 
   }
 
   // dev file name
-  return `${appFileName}.${coreId}${getSourceTargetSuffix(sourceTarget)}.js`;
+  return `${appFileName}.${coreId}.js`;
 }
 
 
