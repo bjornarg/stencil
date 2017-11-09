@@ -54,6 +54,19 @@ export function getGlobalDist(config: BuildConfig, sourceTarget: SourceTarget) {
 }
 
 
+export function getCoreFilename(config: BuildConfig, coreId: string, jsContent: string, sourceTarget: SourceTarget) {
+  const appFileName = getAppFileName(config);
+  if (config.hashFileNames) {
+    // prod mode renames the core file with its hashed content
+    const contentHash = config.sys.generateContentHash(jsContent, config.hashedFileNameLength);
+    return `${appFileName}.${contentHash}.js`;
+  }
+
+  // dev file name
+  return `${appFileName}.${coreId}${getSourceTargetSuffix(sourceTarget)}.js`;
+}
+
+
 export function getBundleFileName(bundleId: string, scoped: boolean, sourceTarget: SourceTarget) {
   return `${bundleId}${scoped ? '.sc' : ''}${getSourceTargetSuffix(sourceTarget)}.js`;
 }
@@ -61,4 +74,9 @@ export function getBundleFileName(bundleId: string, scoped: boolean, sourceTarge
 
 export function getSourceTargetSuffix(sourceTarget: SourceTarget) {
   return sourceTarget === 'es5' ? '.es5' : '';
+}
+
+
+export function getAppPublicPath(config: BuildConfig) {
+  return pathJoin(config, config.publicPath, getAppFileName(config)) + '/';
 }

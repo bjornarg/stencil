@@ -1,8 +1,7 @@
 import { AppRegistry, BuildConfig, BuildContext, SourceTarget } from '../../util/interfaces';
 import { buildExpressionReplacer } from '../build/replacer';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
-import { getAppPublicPath } from './app-core';
-import { getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
+import { getAppPublicPath, getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
 import { hasError, generatePreamble } from '../util';
 import { transpiledInMemoryPlugin } from '../bundle/component-modules';
 

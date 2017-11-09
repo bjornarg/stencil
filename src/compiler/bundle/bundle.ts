@@ -11,14 +11,12 @@ export function bundle(config: BuildConfig, ctx: BuildContext) {
     return Promise.resolve();
   }
 
-  const logger = config.logger;
-
   if (config.generateWWW) {
-    logger.debug(`bundle, buildDir: ${config.buildDir}`);
+    config.logger.debug(`bundle, buildDir: ${config.buildDir}`);
   }
 
   if (config.generateDistribution) {
-    logger.debug(`bundle, distDir: ${config.distDir}`);
+    config.logger.debug(`bundle, distDir: ${config.distDir}`);
   }
 
   ctx.manifestBundles = getManifestBundles(ctx.manifest.modulesFiles, ctx.manifest.bundles, ctx.diagnostics);

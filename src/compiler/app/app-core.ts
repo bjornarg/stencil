@@ -1,10 +1,10 @@
-import { BuildConfig, BuildContext, BuildConditionals } from '../../util/interfaces';
+import { BuildConfig, BuildContext, BuildConditionals, SourceTarget } from '../../util/interfaces';
 import { buildCoreContent } from './build-core-content';
-import { generatePreamble, normalizePath } from '../util';
-import { getAppFileName } from './app-file-naming';
+import { generatePreamble, pathJoin } from '../util';
+import { getAppPublicPath, getAppDistDir, getAppWWWBuildDir, getCoreFilename } from './app-file-naming';
 
 
-export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals) {
+export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals, sourceTarget: SourceTarget) {
   // mega-minify the core w/ property renaming, but not the user's globals
   // hardcode which features should and should not go in the core builds
   // process the transpiled code by removing unused code and minify when configured to do so
@@ -42,8 +42,7 @@ export async function generateCore(config: BuildConfig, ctx: BuildContext, globa
     jsContent = polyfillsContent + '\n' + jsContent;
   }
 
-  const appFileName = getAppFileName(config);
-  const coreFilename = getBuildFilename(config, appFileName, buildConditionals.coreId, jsContent);
+  const coreFilename = getCoreFilename(config, buildConditionals.coreId, jsContent, sourceTarget);
 
   if (ctx.appFiles[buildConditionals.coreId] === jsContent) {
     // build is identical from last, no need to resave
@@ -56,29 +55,17 @@ export async function generateCore(config: BuildConfig, ctx: BuildContext, globa
 
   if (config.generateWWW) {
     // write the www/build/ app core file
-    const appCoreWWW = normalizePath(config.sys.path.join(config.buildDir, appFileName, coreFilename));
+    const appCoreWWW = pathJoin(config, getAppWWWBuildDir(config), coreFilename);
     ctx.filesToWrite[appCoreWWW] = jsContent;
   }
 
   if (config.generateDistribution) {
     // write the dist/ app core file
-    const appCoreDist = normalizePath(config.sys.path.join(config.distDir, appFileName, coreFilename));
+    const appCoreDist = pathJoin(config, getAppDistDir(config), coreFilename);
     ctx.filesToWrite[appCoreDist] = jsContent;
   }
 
   return coreFilename;
-}
-
-
-function getBuildFilename(config: BuildConfig, appFileName: string, coreId: string, jsContent: string) {
-  if (config.hashFileNames) {
-    // prod mode renames the core file with its hashed content
-    const contentHash = config.sys.generateContentHash(jsContent, config.hashedFileNameLength);
-    return `${appFileName}.${contentHash}.js`;
-  }
-
-  // dev file name
-  return `${appFileName}.${coreId}.js`;
 }
 
 
@@ -118,16 +105,6 @@ export function getCorePolyfills(config: BuildConfig) {
     // concat the polyfills
     return results.join('\n').trim();
   });
-}
-
-
-export function getAppPublicPath(config: BuildConfig) {
-  return normalizePath(
-    config.sys.path.join(
-      config.publicPath,
-      getAppFileName(config)
-    )
-  ) + '/';
 }
 
 

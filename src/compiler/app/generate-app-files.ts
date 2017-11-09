@@ -28,7 +28,7 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   const buildConditionals = setBuildConditionals(ctx, ctx.manifestBundles);
   buildConditionals.coreId = 'core';
 
-  const coreFilename = await generateCore(config, ctx, globalJsContents, buildConditionals);
+  const coreFilename = await generateCore(config, ctx, globalJsContents, buildConditionals, 'es2015');
   appRegistry.core = coreFilename;
 
 
@@ -42,8 +42,12 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
     buildConditionalsEs5.polyfills = true;
     buildConditionalsEs5.customSlot = true;
 
-    const coreFilename = await generateCore(config, ctx, globalJsContentsEs5, buildConditionalsEs5);
-    appRegistry.corePolyfilled = coreFilename;
+    const coreFilenameEs5 = await generateCore(config, ctx, globalJsContentsEs5, buildConditionalsEs5, 'es5');
+    appRegistry.corePolyfilled = coreFilenameEs5;
+
+  } else {
+    // not doing an es5 right now
+    appRegistry.corePolyfilled = generateDisabledEs5Message();
   }
 
   // create a json file for the app registry
@@ -53,4 +57,15 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   await generateLoader(config, ctx, appRegistry);
 
   timespan.finish(`generateAppFiles: ${config.namespace} finished`);
+}
+
+
+function generateDisabledEs5Message() {
+  // not doing an es5 right now
+  // but it's possible during development the user
+  // tests on a browser that doesn't support es2015
+  const fileName = 'es5-build-disabled.js';
+
+
+  return fileName;
 }
