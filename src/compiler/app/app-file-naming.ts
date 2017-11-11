@@ -40,7 +40,7 @@ export function getLoaderFileName(config: BuildConfig) {
 
 export function getGlobalFileName(config: BuildConfig, sourceTarget: SourceTarget) {
   const appFileName = getAppFileName(config);
-  return `${appFileName}.${GLOBAL_NAME}${getSourceTargetSuffix(sourceTarget)}.js`;
+  return `${appFileName}.${GLOBAL_NAME}${sourceTarget === 'es5' ? '.es5' : ''}.js`;
 }
 
 
@@ -67,13 +67,8 @@ export function getCoreFilename(config: BuildConfig, coreId: string, jsContent: 
 }
 
 
-export function getBundleFileName(bundleId: string, scoped: boolean, sourceTarget: SourceTarget) {
-  return `${bundleId}${scoped ? '.sc' : ''}${getSourceTargetSuffix(sourceTarget)}.js`;
-}
-
-
-export function getSourceTargetSuffix(sourceTarget: SourceTarget) {
-  return sourceTarget === 'es5' ? '.es5' : '';
+export function getBundleFileName(bundleId: string, scoped: boolean) {
+  return `${bundleId}${scoped ? '.sc' : ''}.js`;
 }
 
 

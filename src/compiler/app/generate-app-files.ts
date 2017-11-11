@@ -16,7 +16,7 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
 
   const timespan = config.logger.createTimeSpan(`generateAppFiles: ${config.namespace} start`, true);
 
-  // generaete the shared app registry object
+  // generate the shared app registry object
   const appRegistry: AppRegistry = {
     namespace: config.namespace,
     components: formatComponentRegistry(ctx.registry)
@@ -46,8 +46,9 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
     const coreFilenameEs5 = await generateCore(config, ctx, globalJsContentsEs5, buildConditionalsEs5);
     appRegistry.corePolyfilled = coreFilenameEs5;
 
-  } else {
-    // not doing an es5 right now
+  } else if (config.generateWWW) {
+    // not doing an es5, probably in dev mode
+    // and don't bother if we're not generating a www build
     appRegistry.corePolyfilled = generateEs5DisabledMessage(config, ctx);
   }
 

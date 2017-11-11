@@ -1,7 +1,7 @@
 import { addListener, enableEventListener } from '../core/instance/listeners';
-import { assignHostContentSlots } from '../core/renderer/slot';
 import { AppGlobal, BundleCallbacks, ComponentMeta, ComponentRegistry, CoreContext,
   EventEmitterData, HostElement, LoadComponentRegistry, PlatformApi } from '../util/interfaces';
+import { assignHostContentSlots } from '../core/renderer/slot';
 import { Build } from '../util/build-conditionals';
 import { createDomControllerClient } from './dom-controller-client';
 import { createDomApi } from '../core/renderer/dom-api';
@@ -208,7 +208,11 @@ export function createPlatformClient(Context: CoreContext, App: AppGlobal, win: 
 
 
   function loadBundle(cmpMeta: ComponentMeta, elm: HostElement, cb: Function, bundleId?: string): void {
-    bundleId = cmpMeta.bundleIds[elm.mode] || (cmpMeta.bundleIds as any);
+    if (Build.es5) {
+      bundleId = (cmpMeta.bundleIds[elm.mode] || (cmpMeta.bundleIds as any))[1];
+    } else {
+      bundleId = (cmpMeta.bundleIds[elm.mode] || (cmpMeta.bundleIds as any))[0];
+    }
 
     if (loadedBundles[bundleId]) {
       // sweet, we've already loaded this bundle
@@ -227,7 +231,7 @@ export function createPlatformClient(Context: CoreContext, App: AppGlobal, win: 
 
   function requestBundle(cmpMeta: ComponentMeta, bundleId: string, url?: string, tmrId?: any, scriptElm?: HTMLScriptElement) {
     // create the url we'll be requesting
-    url = publicPath + bundleId + (((Build.scopedCss || Build.shadowDom) && (useScopedCss(domApi.$supportsShadowDom, cmpMeta)) ? '.sc' : '')  + (Build.es5 ? '.es5' : '') + '.js');
+    url = publicPath + bundleId + (((Build.scopedCss || Build.shadowDom) && (useScopedCss(domApi.$supportsShadowDom, cmpMeta)) ? '.sc' : '') + '.js');
 
     function onScriptComplete() {
       clearTimeout(tmrId);

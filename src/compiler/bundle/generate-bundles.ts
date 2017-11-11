@@ -6,7 +6,7 @@ import { getAppFileName, getBundleFileName, getAppWWWBuildDir } from '../app/app
 
 
 export function generateBundles(config: BuildConfig, ctx: BuildContext, manifestBundles: ManifestBundle[], sourceTarget: SourceTarget) {
-  const timeSpan = config.logger.createTimeSpan(`generate ${sourceTarget} bundles started`, true);
+  const timeSpan = config.logger.createTimeSpan(`generate ${sourceTarget} bundles started`, config.devMode);
 
   manifestBundles.forEach(manifestBundle => {
     generateBundleFiles(config, ctx, manifestBundle, sourceTarget);
@@ -22,7 +22,7 @@ export function generateBundles(config: BuildConfig, ctx: BuildContext, manifest
 
 function generateBundleFiles(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, sourceTarget: SourceTarget) {
   manifestBundle.moduleFiles.forEach(moduleFile => {
-    moduleFile.cmpMeta.bundleIds = {};
+    moduleFile.cmpMeta.bundleIds = moduleFile.cmpMeta.bundleIds || {};
   });
 
   const compiledModuleText = sourceTarget === 'es5' ? manifestBundle.compiledModuleTextEs5 : manifestBundle.compiledModuleText;
@@ -88,9 +88,9 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
 
   unscopedContent = replaceDefaulBundleId(unscopedContent, bundleId);
 
-  const unscopedFileName = getBundleFileName(bundleId, false, sourceTarget);
+  const unscopedFileName = getBundleFileName(bundleId, false);
 
-  setBundleModeIds(manifestBundle.moduleFiles, modeName, bundleId);
+  setBundleModeIds(manifestBundle.moduleFiles, modeName, bundleId, sourceTarget);
 
   const unscopedWwwBuildPath = pathJoin(config, getAppWWWBuildDir(config), unscopedFileName);
 
@@ -142,7 +142,7 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
 
     const scopedFileContent = replaceDefaulBundleId(scopedContents.join('\n'), bundleId);
 
-    const scopedFileName = getBundleFileName(bundleId, true, sourceTarget);
+    const scopedFileName = getBundleFileName(bundleId, true);
 
     if (config.generateWWW) {
       // write the scoped css to the www build
@@ -162,13 +162,25 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
 }
 
 
-export function setBundleModeIds(moduleFiles: ModuleFile[], modeName: string, bundleId: string) {
+export function setBundleModeIds(moduleFiles: ModuleFile[], modeName: string, bundleId: string, sourceTarget: SourceTarget) {
   moduleFiles.forEach(moduleFile => {
     if (modeName) {
-      moduleFile.cmpMeta.bundleIds[modeName] = bundleId;
+      moduleFile.cmpMeta.bundleIds[modeName] = moduleFile.cmpMeta.bundleIds[modeName] || {};
+      if (sourceTarget === 'es5') {
+        moduleFile.cmpMeta.bundleIds[modeName].es5 = bundleId;
+      } else {
+        moduleFile.cmpMeta.bundleIds[modeName].es2015 = bundleId;
+      }
+
     } else {
-      moduleFile.cmpMeta.bundleIds[DEFAULT_STYLE_MODE] = bundleId;
+      moduleFile.cmpMeta.bundleIds[DEFAULT_STYLE_MODE] = moduleFile.cmpMeta.bundleIds[DEFAULT_STYLE_MODE] || {};
+      if (sourceTarget === 'es5') {
+        moduleFile.cmpMeta.bundleIds[DEFAULT_STYLE_MODE].es5 = bundleId;
+      } else {
+        moduleFile.cmpMeta.bundleIds[DEFAULT_STYLE_MODE].es2015 = bundleId;
+      }
     }
+
   });
 }
 

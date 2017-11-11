@@ -85,7 +85,7 @@ export interface LoadComponentRegistry {
    * map of bundle ids
    */
   [1]: {
-    [modeName: string]: string
+    [modeName: string]: any[];
   };
 
   /**
@@ -789,7 +789,12 @@ export interface ComponentMeta {
 
 
 export interface BundleIds {
-  [modeName: string]: string;
+  [modeName: string]: BundleId;
+}
+
+export interface BundleId {
+  es2015?: string;
+  es5?: string;
 }
 
 
