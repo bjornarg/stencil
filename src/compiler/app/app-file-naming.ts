@@ -1,4 +1,4 @@
-import { BuildConfig, SourceTarget } from '../../util/interfaces';
+import { BuildConfig } from '../../util/interfaces';
 import { GLOBAL_NAME } from '../../util/constants';
 import { pathJoin } from '../util';
 
@@ -38,19 +38,19 @@ export function getLoaderFileName(config: BuildConfig) {
 }
 
 
-export function getGlobalFileName(config: BuildConfig, sourceTarget: SourceTarget) {
+export function getGlobalFileName(config: BuildConfig) {
   const appFileName = getAppFileName(config);
-  return `${appFileName}.${GLOBAL_NAME}${sourceTarget === 'es5' ? '.es5' : ''}.js`;
+  return `${appFileName}.${GLOBAL_NAME}.js`;
 }
 
 
-export function getGlobalWWW(config: BuildConfig, sourceTarget: SourceTarget) {
-  return pathJoin(config, getAppWWWBuildDir(config), getGlobalFileName(config, sourceTarget));
+export function getGlobalWWW(config: BuildConfig) {
+  return pathJoin(config, getAppWWWBuildDir(config), getGlobalFileName(config));
 }
 
 
-export function getGlobalDist(config: BuildConfig, sourceTarget: SourceTarget) {
-  return pathJoin(config, getAppDistDir(config), getGlobalFileName(config, sourceTarget));
+export function getGlobalDist(config: BuildConfig) {
+  return pathJoin(config, getAppDistDir(config), getGlobalFileName(config));
 }
 
 

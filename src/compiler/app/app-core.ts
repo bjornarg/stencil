@@ -4,32 +4,19 @@ import { generatePreamble, pathJoin } from '../util';
 import { getAppPublicPath, getAppDistDir, getAppWWWBuildDir, getCoreFilename } from './app-file-naming';
 
 
-export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string[], buildConditionals: BuildConditionals) {
+export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string, buildConditionals: BuildConditionals) {
   // mega-minify the core w/ property renaming, but not the user's globals
   // hardcode which features should and should not go in the core builds
   // process the transpiled code by removing unused code and minify when configured to do so
-  const coreContent = await config.sys.getClientCoreFile({ staticName: 'core.build.js' });
-  let jsContent = buildCoreContent(config, ctx, buildConditionals, coreContent);
+  let jsContent = await config.sys.getClientCoreFile({ staticName: 'core.build.js' });
 
-  let globalContent = globalJsContent.join('\n').trim();
-  if (globalContent.length) {
+  if (globalJsContent) {
     // we've got global js to put in the core build too
-
-    if (config.minifyJs) {
-      // let's do another quick minify with
-      // of just the user's globals, but not a mega minify
-      const globalMinifyResults = config.sys.minifyJs(globalContent);
-      if (globalMinifyResults.diagnostics) {
-        ctx.diagnostics.push(...globalMinifyResults.diagnostics);
-
-      } else {
-        globalContent = globalMinifyResults.output.trim();
-      }
-    }
-
     // concat the global js and transpiled code together
-    jsContent = `${globalContent}\n${jsContent}`;
+    jsContent = `${globalJsContent}\n${jsContent}`;
   }
+
+  jsContent = buildCoreContent(config, ctx, buildConditionals, jsContent);
 
   // wrap the core js code together
   jsContent = wrapCoreJs(config, jsContent);

@@ -121,7 +121,7 @@ function loadAppGlobal(config: BuildConfig, ctx: BuildContext) {
   }
 
   // let's load the app global js content
-  const appGlobalPath = getGlobalWWW(config, 'es2015');
+  const appGlobalPath = getGlobalWWW(config);
   try {
     ctx.appFiles.global = config.sys.fs.readFileSync(appGlobalPath, 'utf-8');
 

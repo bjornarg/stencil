@@ -1,75 +1,46 @@
-import { AppRegistry, BuildConfig, BuildContext, SourceTarget } from '../../util/interfaces';
+import { AppRegistry, BuildConfig, BuildContext } from '../../util/interfaces';
 import { buildExpressionReplacer } from '../build/replacer';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
+import { generatePreamble, hasError } from '../util';
 import { getAppPublicPath, getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
-import { hasError, generatePreamble } from '../util';
 import { transpiledInMemoryPlugin } from '../bundle/component-modules';
 
 
 export async function generateAppGlobal(config: BuildConfig, ctx: BuildContext, appRegistry: AppRegistry) {
-  const globalJsContents = await generateAppGlobalContents(config, ctx, 'es2015');
+  const globalJsContents = await generateAppGlobalContents(config, ctx);
 
   if (globalJsContents.length) {
-    appRegistry.global = getGlobalFileName(config, 'es2015');
+    appRegistry.global = getGlobalFileName(config);
 
     const globalJsContent = generateGlobalJs(config, globalJsContents);
 
     ctx.appFiles.global = globalJsContent;
 
     if (config.generateWWW) {
-      const appGlobalWWWFilePath = getGlobalWWW(config, 'es2015');
+      const appGlobalWWWFilePath = getGlobalWWW(config);
 
       config.logger.debug(`build, app global www: ${appGlobalWWWFilePath}`);
       ctx.filesToWrite[appGlobalWWWFilePath] = globalJsContent;
     }
 
     if (config.generateDistribution) {
-      const appGlobalDistFilePath = getGlobalDist(config, 'es2015');
+      const appGlobalDistFilePath = getGlobalDist(config);
 
       config.logger.debug(`build, app global dist: ${appGlobalDistFilePath}`);
       ctx.filesToWrite[appGlobalDistFilePath] = globalJsContent;
     }
   }
 
-  return globalJsContents;
+  return globalJsContents.join('\n').trim();
 }
 
 
-export async function generateAppGlobalEs5(config: BuildConfig, ctx: BuildContext, appRegistry: AppRegistry) {
-  const globalJsContentsEs5 = await generateAppGlobalContents(config, ctx, 'es5');
-
-  if (globalJsContentsEs5.length) {
-    appRegistry.globalEs5 = getGlobalFileName(config, 'es5');
-
-    const globalJsContentEs5 = generateGlobalJs(config, globalJsContentsEs5);
-
-    ctx.appFiles.globales5 = globalJsContentEs5;
-
-    if (config.generateWWW) {
-      const appGlobalWWWFilePathEs5 = getGlobalWWW(config, 'es5');
-
-      config.logger.debug(`build, app es5 global www: ${appGlobalWWWFilePathEs5}`);
-      ctx.filesToWrite[appGlobalWWWFilePathEs5] = globalJsContentEs5;
-    }
-
-    if (config.generateDistribution) {
-      const appGlobalDistFilePathEs5 = getGlobalDist(config, 'es5');
-
-      config.logger.debug(`build, app es5 global dist: ${appGlobalDistFilePathEs5}`);
-      ctx.filesToWrite[appGlobalDistFilePathEs5] = globalJsContentEs5;
-    }
-  }
-
-  return globalJsContentsEs5;
-}
-
-
-export function generateAppGlobalContents(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget) {
+export function generateAppGlobalContents(config: BuildConfig, ctx: BuildContext) {
   let globalJsContents: string[] = [];
 
   return Promise.all([
-    loadDependentGlobalJsContents(config, ctx, sourceTarget),
-    bundleProjectGlobal(config, ctx, config.namespace, config.global, sourceTarget)
+    loadDependentGlobalJsContents(config, ctx),
+    bundleProjectGlobal(config, ctx, config.namespace, config.global)
 
   ]).then(results => {
     const dependentGlobalJsContents = results[0];
@@ -87,7 +58,7 @@ export function generateAppGlobalContents(config: BuildConfig, ctx: BuildContext
 }
 
 
-function loadDependentGlobalJsContents(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget): Promise<string[]> {
+function loadDependentGlobalJsContents(config: BuildConfig, ctx: BuildContext): Promise<string[]> {
   if (!ctx.manifest.dependentManifests) {
     return Promise.resolve([]);
   }
@@ -96,12 +67,12 @@ function loadDependentGlobalJsContents(config: BuildConfig, ctx: BuildContext, s
                                 .filter(m => m.global && m.global.jsFilePath);
 
   return Promise.all(dependentManifests.map(dependentManifest => {
-    return bundleProjectGlobal(config, ctx, dependentManifest.manifestName, dependentManifest.global.jsFilePath, sourceTarget);
+    return bundleProjectGlobal(config, ctx, dependentManifest.manifestName, dependentManifest.global.jsFilePath);
   }));
 }
 
 
-function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: string, entry: string, sourceTarget: SourceTarget): Promise<string> {
+function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: string, entry: string): Promise<string> {
   // stencil by itself does not have a global file
   // however, other collections can provide a global js
   // which will bundle whatever is in the global, and then
@@ -127,7 +98,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
         include: 'node_modules/**',
         sourceMap: false
       }),
-      transpiledInMemoryPlugin(config, ctx, sourceTarget)
+      transpiledInMemoryPlugin(config, ctx, 'es2015')
     ],
     onwarn: createOnWarnFn(ctx.diagnostics)
 
@@ -152,7 +123,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
       results.code = buildExpressionReplacer(config, results.code);
 
       // wrap our globals code with our own iife
-      return wrapGlobalJs(config, ctx, namespace, results.code);
+      return wrapGlobalJs(config, namespace, results.code);
     });
 
   }).then(output => {
@@ -164,7 +135,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
 }
 
 
-function wrapGlobalJs(config: BuildConfig, ctx: BuildContext, globalJsName: string, jsContent: string) {
+function wrapGlobalJs(config: BuildConfig, globalJsName: string, jsContent: string) {
   jsContent = (jsContent || '').trim();
 
   if (!config.minifyJs) {
@@ -180,21 +151,7 @@ function wrapGlobalJs(config: BuildConfig, ctx: BuildContext, globalJsName: stri
     }).join('\n');
   }
 
-  jsContent = `\n(function(publicPath){${jsContent}\n})(publicPath);\n`;
-
-  if (config.minifyJs) {
-    // minify js
-    const minifyJsResults = config.sys.minifyJs(jsContent);
-    minifyJsResults.diagnostics.forEach(d => {
-      ctx.diagnostics.push(d);
-    });
-
-    if (!minifyJsResults.diagnostics.length) {
-      jsContent = minifyJsResults.output;
-    }
-  }
-
-  return jsContent;
+  return `\n(function(publicPath){${jsContent}\n})(publicPath);\n`;
 }
 
 
