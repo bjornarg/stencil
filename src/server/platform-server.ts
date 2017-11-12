@@ -197,7 +197,7 @@ export function createPlatformServer(
       return;
     }
 
-    const bundleId: string = cmpMeta.bundleIds[elm.mode] || cmpMeta.bundleIds[DEFAULT_STYLE_MODE] || (cmpMeta.bundleIds as any);
+    const bundleId: string = (cmpMeta.bundleIds[elm.mode] || cmpMeta.bundleIds[DEFAULT_STYLE_MODE] || (cmpMeta.bundleIds as any)).es2015;
 
     if (loadedBundles[bundleId]) {
       // sweet, we've already loaded this bundle
