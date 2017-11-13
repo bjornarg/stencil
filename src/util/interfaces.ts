@@ -337,7 +337,6 @@ export interface BuildConditionals {
   shadowDom: boolean;
 
   // vdom
-  render: boolean;
   hostData: boolean;
   hostTheme: boolean;
 
