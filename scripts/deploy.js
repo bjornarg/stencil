@@ -11,6 +11,7 @@ const path = require('path');
 const rimraf = require('rimraf');
 const semver = require('semver');
 const minimist = require('minimist');
+const tar = require('tar');
 
 
 const rootDir = path.join(__dirname, '../');
@@ -181,7 +182,16 @@ function runTasks(opts) {
 			},
 			{
 				title: 'Create dist/core.tar.gz package',
-				task: () => execa('tar', ['-zcf', 'core.tar.gz', './'], { cwd: dstDir }),
+				task: () => {
+					const opts = {
+						gzip: true,
+						file: path.join(dstDir, 'core.tar.gz'),
+						cwd: dstDir
+					};
+					const files = ['./'];
+
+					return tar.c(opts, files);
+				}
 			}
 		);
 	}
