@@ -1,4 +1,4 @@
-import { BuildConfig, BuildContext, FilesMap, ManifestBundle, ModuleFile, SourceTarget } from '../../util/interfaces';
+import { BuildConfig, BuildContext, FilesMap, ManifestBundle, ModuleFile } from '../../util/interfaces';
 import { buildExpressionReplacer } from '../build/replacer';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
 import { dashToPascalCase } from '../../util/helpers';
@@ -13,7 +13,6 @@ export function generateComponentModules(config: BuildConfig, ctx: BuildContext,
     // don't bother bundling if this is a change build but
     // none of the changed files are modules or components
     manifestBundle.compiledModuleText = ctx.moduleBundleOutputs[bundleCacheKey];
-    manifestBundle.compiledModuleTextEs5 = ctx.moduleBundleOutputsEs5[bundleCacheKey];
     return Promise.resolve();
   }
 
@@ -21,18 +20,11 @@ export function generateComponentModules(config: BuildConfig, ctx: BuildContext,
   // returned value is array of strings so it needs to be joined here
   const moduleBundleInput = createInMemoryBundleInput(manifestBundle.moduleFiles).join('\n');
 
-  // standard es2015 build
-  const bundlePromise = bundleComponents(config, ctx, manifestBundle, moduleBundleInput, bundleCacheKey, 'es2015');
-
-  // only do the es5 build if es5 fallback is enabled
-  const bundleEs5Promise = config.es5Fallback ? bundleComponents(config, ctx, manifestBundle, moduleBundleInput, bundleCacheKey, 'es5') : Promise.resolve();
-
-  // plz wait my good sir
-  return Promise.all([bundlePromise, bundleEs5Promise]);
+  return bundleComponents(config, ctx, manifestBundle, moduleBundleInput, bundleCacheKey);
 }
 
 
-function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, moduleBundleInput: string, bundleCacheKey: string, sourceTarget: SourceTarget) {
+function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, moduleBundleInput: string, bundleCacheKey: string) {
   // start the bundler on our temporary file
   return config.sys.rollup.rollup({
     input: IN_MEMORY_INPUT,
@@ -46,7 +38,7 @@ function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle
         sourceMap: false
       }),
       entryInMemoryPlugin(IN_MEMORY_INPUT, moduleBundleInput),
-      transpiledInMemoryPlugin(config, ctx, sourceTarget),
+      transpiledInMemoryPlugin(config, ctx),
       localResolution(config),
     ],
     onwarn: createOnWarnFn(ctx.diagnostics, manifestBundle.moduleFiles)
@@ -65,40 +57,24 @@ function bundleComponents(config: BuildConfig, ctx: BuildContext, manifestBundle
 
     }).then(results => {
 
-      bundleComponentsResults(config, ctx, manifestBundle, bundleCacheKey, sourceTarget, results.code.trim());
+      bundleComponentsResults(config, ctx, manifestBundle, bundleCacheKey, results.code.trim());
 
     });
   });
 }
 
 
-function bundleComponentsResults(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, bundleCacheKey: string, sourceTarget: SourceTarget, resultsCode: string) {
-  if (sourceTarget === 'es5') {
-    // es5
-    // module bundling finished, assign its content to the user's bundle
-    // wrap our component code with our own iife
-    manifestBundle.compiledModuleTextEs5 = wrapComponentImports(resultsCode);
+function bundleComponentsResults(config: BuildConfig, ctx: BuildContext, manifestBundle: ManifestBundle, bundleCacheKey: string, resultsCode: string) {
+  // module bundling finished, assign its content to the user's bundle
+  // wrap our component code with our own iife
+  manifestBundle.compiledModuleText = wrapComponentImports(resultsCode);
 
-    // replace build time expressions, like process.env.NODE_ENV === 'production'
-    // with a hard coded boolean
-    manifestBundle.compiledModuleTextEs5 = buildExpressionReplacer(config, manifestBundle.compiledModuleTextEs5);
+  // replace build time expressions, like process.env.NODE_ENV === 'production'
+  // with a hard coded boolean
+  manifestBundle.compiledModuleText = buildExpressionReplacer(config, manifestBundle.compiledModuleText);
 
-    // cache for later
-    ctx.moduleBundleOutputsEs5[bundleCacheKey] = manifestBundle.compiledModuleTextEs5;
-
-  } else {
-    // es2015
-    // module bundling finished, assign its content to the user's bundle
-    // wrap our component code with our own iife
-    manifestBundle.compiledModuleText = wrapComponentImports(resultsCode);
-
-    // replace build time expressions, like process.env.NODE_ENV === 'production'
-    // with a hard coded boolean
-    manifestBundle.compiledModuleText = buildExpressionReplacer(config, manifestBundle.compiledModuleText);
-
-    // cache for later
-    ctx.moduleBundleOutputs[bundleCacheKey] = manifestBundle.compiledModuleText;
-  }
+  // cache for later
+  ctx.moduleBundleOutputs[bundleCacheKey] = manifestBundle.compiledModuleText;
 
   // keep track of module bundling for testing
   ctx.moduleBundleCount++;
@@ -110,7 +86,7 @@ export function wrapComponentImports(content: string) {
 }
 
 
-export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget) {
+export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext) {
   const sys = config.sys;
   const assetsCache: FilesMap = {};
 
@@ -179,17 +155,9 @@ export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext,
     load(sourcePath: string): string {
       sourcePath = normalizePath(sourcePath);
 
-      if (sourceTarget === 'es5') {
-        // es5
-        if (typeof ctx.jsFilesEs5[sourcePath] === 'string') {
-          // perfect, we already got this js file cached
-          return ctx.jsFilesEs5[sourcePath];
-        }
-      } else {
-        if (typeof ctx.jsFiles[sourcePath] === 'string') {
-          // perfect, we already got this js file cached
-          return ctx.jsFiles[sourcePath];
-        }
+      if (typeof ctx.jsFiles[sourcePath] === 'string') {
+        // perfect, we already got this js file cached
+        return ctx.jsFiles[sourcePath];
       }
 
       if (typeof assetsCache[sourcePath] === 'string') {
@@ -204,12 +172,7 @@ export function transpiledInMemoryPlugin(config: BuildConfig, ctx: BuildContext,
         jsFilePath: sourcePath,
       };
 
-      if (sourceTarget === 'es5') {
-        ctx.jsFilesEs5[sourcePath] = jsText;
-
-      } else {
-        ctx.jsFiles[sourcePath] = jsText;
-      }
+      ctx.jsFiles[sourcePath] = jsText;
 
       return jsText;
     }

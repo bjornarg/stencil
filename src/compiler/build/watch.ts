@@ -194,10 +194,8 @@ function watchBuild(config: BuildConfig, ctx: BuildContext, requiresFullBuild: b
     // completely clear out the cache
     ctx.moduleFiles = {};
     ctx.jsFiles = {};
-    ctx.jsFilesEs5 = {};
     ctx.cssFiles = {};
     ctx.moduleBundleOutputs = {};
-    ctx.moduleBundleOutputsEs5 = {};
     ctx.styleSassUnscopedOutputs = {};
   }
 

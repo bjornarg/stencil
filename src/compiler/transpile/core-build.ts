@@ -36,7 +36,7 @@ export function transpileCoreBuild(coreBuild: BuildConditionals, input: string) 
 }
 
 
-export function transpileGlobalToEs5(input: string) {
+export function transpileToEs5(input: string) {
   const diagnostics: Diagnostic[] = [];
   const results: TranspileResults = {
     code: null,

@@ -3,6 +3,7 @@ import { componentRequiresScopedStyles, generatePreamble, pathJoin } from '../ut
 import { DEFAULT_STYLE_MODE } from '../../util/constants';
 import { formatLoadComponents, formatLoadStyles } from '../../util/data-serialize';
 import { getAppFileName, getBundleFileName, getAppWWWBuildDir } from '../app/app-file-naming';
+import { transpileToEs5 } from '../transpile/core-build';
 
 
 export function generateBundles(config: BuildConfig, ctx: BuildContext, manifestBundles: ManifestBundle[], sourceTarget: SourceTarget) {
@@ -25,7 +26,16 @@ function generateBundleFiles(config: BuildConfig, ctx: BuildContext, manifestBun
     moduleFile.cmpMeta.bundleIds = moduleFile.cmpMeta.bundleIds || {};
   });
 
-  const compiledModuleText = sourceTarget === 'es5' ? manifestBundle.compiledModuleTextEs5 : manifestBundle.compiledModuleText;
+  let compiledModuleText = manifestBundle.compiledModuleText;
+
+  if (sourceTarget === 'es5') {
+    const transpileResults = transpileToEs5(compiledModuleText);
+    if (transpileResults.diagnostics && transpileResults.diagnostics.length) {
+      ctx.diagnostics.push(...transpileResults.diagnostics);
+    } else {
+      compiledModuleText = transpileResults.code;
+    }
+  }
 
   let moduleText = formatLoadComponents(
     config.namespace,
@@ -114,22 +124,12 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
   const unscopedWwwBuildPath = pathJoin(config, getAppWWWBuildDir(config), unscopedFileName);
 
   // use wwwFilePath as the cache key
-  if (sourceTarget === 'es5') {
-    if (ctx.compiledFileCacheEs5[unscopedWwwBuildPath] === unscopedContent) {
-      // unchanged es5, no need to resave
-      return;
-    }
-    // cache for later
-    ctx.compiledFileCacheEs5[unscopedWwwBuildPath] = unscopedContent;
-
-  } else {
-    if (ctx.compiledFileCache[unscopedWwwBuildPath] === unscopedContent) {
-      // unchanged es2015, no need to resave
-      return;
-    }
-    // cache for later
-    ctx.compiledFileCache[unscopedWwwBuildPath] = unscopedContent;
+  if (ctx.compiledFileCache[unscopedWwwBuildPath] === unscopedContent) {
+    // unchanged, no need to resave
+    return;
   }
+  // cache for later
+  ctx.compiledFileCache[unscopedWwwBuildPath] = unscopedContent;
 
   if (config.generateWWW) {
     // write the unscoped css to the www build

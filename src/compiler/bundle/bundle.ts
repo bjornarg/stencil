@@ -172,7 +172,6 @@ function createManifestBundle(moduleFiles: ModuleFile[], priority: PRIORITY) {
     moduleFiles: moduleFiles,
     compiledModeStyles: [],
     compiledModuleText: '',
-    compiledModuleTextEs5: '',
     priority: priority
   };
   return manifestBundle;

@@ -4,7 +4,7 @@ import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-
 import { generatePreamble, hasError } from '../util';
 import { getAppPublicPath, getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
 import { transpiledInMemoryPlugin } from '../bundle/component-modules';
-import { transpileGlobalToEs5 } from '../transpile/core-build';
+import { transpileToEs5 } from '../transpile/core-build';
 
 
 export async function generateAppGlobal(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget, appRegistry: AppRegistry) {
@@ -99,7 +99,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, sourceTarge
         include: 'node_modules/**',
         sourceMap: false
       }),
-      transpiledInMemoryPlugin(config, ctx, 'es2015')
+      transpiledInMemoryPlugin(config, ctx)
     ],
     onwarn: createOnWarnFn(ctx.diagnostics)
 
@@ -154,7 +154,7 @@ function wrapGlobalJs(config: BuildConfig, ctx: BuildContext, sourceTarget: Sour
     // global could already be in es2015
     // transpile it down to es5
     config.logger.debug(`transpile global to es5: ${globalJsName}`);
-    const transpileResults = transpileGlobalToEs5(jsContent);
+    const transpileResults = transpileToEs5(jsContent);
     if (transpileResults.diagnostics && transpileResults.diagnostics.length) {
       ctx.diagnostics.push(...transpileResults.diagnostics);
     } else {

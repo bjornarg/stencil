@@ -1,8 +1,8 @@
-import { BuildConfig, SourceTarget } from '../../util/interfaces';
+import { BuildConfig } from '../../util/interfaces';
 import * as ts from 'typescript';
 
 
-export function getUserTsConfig(config: BuildConfig, sourceTarget: SourceTarget): ts.CompilerOptions {
+export function getUserTsConfig(config: BuildConfig): ts.CompilerOptions {
   // force defaults
   const options: ts.CompilerOptions = {
     // to allow jsx to work
@@ -33,15 +33,10 @@ export function getUserTsConfig(config: BuildConfig, sourceTarget: SourceTarget)
     module: ts.ModuleKind.ES2015,
 
     // resolve using NodeJs style
-    moduleResolution: ts.ModuleResolutionKind.NodeJs
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
+
+    target: ts.ScriptTarget.ES2015
   };
-
-  if (sourceTarget === 'es5') {
-    options.target = ts.ScriptTarget.ES5;
-
-  } else {
-    options.target = ts.ScriptTarget.ES2015;
-  }
 
   if (config._isTesting) {
     options.module = ts.ModuleKind.CommonJS;

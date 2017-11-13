@@ -13,13 +13,10 @@ export function getBuildContext(ctx?: BuildContext) {
   ctx.appFiles = ctx.appFiles || {};
   ctx.moduleFiles = ctx.moduleFiles || {};
   ctx.jsFiles = ctx.jsFiles || {};
-  ctx.jsFilesEs5 = ctx.jsFilesEs5 || {};
   ctx.cssFiles = ctx.cssFiles || {};
   ctx.dependentManifests = ctx.dependentManifests || {};
   ctx.compiledFileCache = ctx.compiledFileCache || {};
-  ctx.compiledFileCacheEs5 = ctx.compiledFileCacheEs5 || {};
   ctx.moduleBundleOutputs = ctx.moduleBundleOutputs || {};
-  ctx.moduleBundleOutputsEs5 = ctx.moduleBundleOutputsEs5 || {};
   ctx.styleSassUnscopedOutputs = ctx.styleSassUnscopedOutputs || {};
   ctx.styleSassScopedOutputs = ctx.styleSassScopedOutputs || {};
   ctx.styleCssUnscopedOutputs = ctx.styleCssUnscopedOutputs || {};

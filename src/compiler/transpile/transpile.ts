@@ -1,5 +1,5 @@
 import addMetadataExport from './transformers/add-metadata-export';
-import { BuildConfig, BuildContext, Diagnostic, ModuleFile, ModuleFiles, SourceTarget, TranspileModulesResults, TranspileResults } from '../../util/interfaces';
+import { BuildConfig, BuildContext, Diagnostic, ModuleFile, ModuleFiles, TranspileModulesResults, TranspileResults } from '../../util/interfaces';
 import { buildError, catchError, isSassFile, normalizePath } from '../util';
 import { componentTsFileClass, componentModuleFileClass } from './transformers/component-class';
 import { createTypesAsString, ImportData, updateReferenceTypeImports }  from './transformers/add-jsx-types';
@@ -164,24 +164,18 @@ function transpileModules(config: BuildConfig, ctx: BuildContext, moduleFiles: M
 
   // fire up the typescript program
   let timespace = config.logger.createTimeSpan('transpile es2015 start', true);
-  transpileProgram(config, ctx, tsFileNames, transpileResults, 'es2015');
+  transpileProgram(config, ctx, tsFileNames, transpileResults);
   timespace.finish(`transpile es2015 finished`);
-
-  if (config.es5Fallback) {
-    timespace = config.logger.createTimeSpan('transpile es5 fallback start', true);
-    transpileProgram(config, ctx, tsFileNames, transpileResults, 'es5');
-    timespace.finish(`transpile es5 fallback finished`);
-  }
 
   // Generate d.ts files for component types
   generateComponentTypesFile(config, ctx);
 }
 
 
-function transpileProgram(config: BuildConfig, ctx: BuildContext, tsFileNames: string[], transpileResults: TranspileModulesResults, sourceTarget: SourceTarget) {
+function transpileProgram(config: BuildConfig, ctx: BuildContext, tsFileNames: string[], transpileResults: TranspileModulesResults) {
 
   // get the tsconfig compiler options we'll use
-  const tsOptions = getUserTsConfig(config, sourceTarget);
+  const tsOptions = getUserTsConfig(config);
 
   if (config.suppressTypeScriptErrors) {
     // suppressTypeScriptErrors mainly for unit testing

@@ -291,7 +291,6 @@ export interface AppRegistry {
   core?: string;
   corePolyfilled?: string;
   global?: string;
-  globalEs5?: string;
   components: LoadComponentRegistry[];
 }
 
@@ -306,7 +305,6 @@ export interface ManifestBundle {
   moduleFiles: ModuleFile[];
   compiledModeStyles?: CompiledModeStyles[];
   compiledModuleText?: string;
-  compiledModuleTextEs5?: string;
   priority?: PRIORITY;
 }
 
@@ -517,12 +515,9 @@ export interface BuildContext {
   moduleFiles?: ModuleFiles;
   manifestBundles?: ManifestBundle[];
   jsFiles?: FilesMap;
-  jsFilesEs5?: FilesMap;
   cssFiles?: FilesMap;
   compiledFileCache?: ModuleBundles;
-  compiledFileCacheEs5?: ModuleBundles;
   moduleBundleOutputs?: ModuleBundles;
-  moduleBundleOutputsEs5?: ModuleBundles;
   styleSassUnscopedOutputs?: ModuleBundles;
   styleSassScopedOutputs?: ModuleBundles;
   styleCssUnscopedOutputs?: ModuleBundles;
@@ -534,7 +529,6 @@ export interface BuildContext {
     core?: string;
     corePolyfilled?: string;
     global?: string;
-    globales5?: string;
     registryJson?: string;
     indexHtml?: string;
     components_d_ts?: string;
