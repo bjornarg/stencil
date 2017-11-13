@@ -163,17 +163,28 @@ function wrapGlobalJs(config: BuildConfig, ctx: BuildContext, sourceTarget: Sour
   }
 
   if (config.minifyJs) {
-    const minifyOpts: any = { output: {}, compress: {} };
+    const opts: any = { output: {}, compress: {}, mangle: {} };
 
     if (sourceTarget === 'es5') {
       // minify in a cool es5 way
-      minifyOpts.ecma = 5;
-      minifyOpts.output.ecma = 5;
-      minifyOpts.compress.ecma = 5;
-      minifyOpts.compress.arrows = false;
+      opts.ecma = 5;
+      opts.output.ecma = 5;
+      opts.compress.ecma = 5;
+      opts.compress.arrows = false;
     }
 
-    const minifyResults = config.sys.minifyJs(jsContent, minifyOpts);
+    if (config.logLevel === 'debug') {
+      opts.mangle.keep_fnames = true;
+      opts.compress.drop_console = false;
+      opts.compress.drop_debugger = false;
+      opts.output.beautify = true;
+      opts.output.bracketize = true;
+      opts.output.indent_level = 2;
+      opts.output.comments = 'all';
+      opts.output.preserve_line = true;
+    }
+
+    const minifyResults = config.sys.minifyJs(jsContent, opts);
     if (minifyResults.diagnostics && minifyResults.diagnostics.length) {
       ctx.diagnostics.push(...minifyResults.diagnostics);
     } else {
