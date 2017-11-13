@@ -1,13 +1,14 @@
-import { AppRegistry, BuildConfig, BuildContext } from '../../util/interfaces';
+import { AppRegistry, BuildConfig, BuildContext, SourceTarget } from '../../util/interfaces';
 import { buildExpressionReplacer } from '../build/replacer';
 import { createOnWarnFn, loadRollupDiagnostics } from '../../util/logger/logger-rollup';
 import { generatePreamble, hasError } from '../util';
 import { getAppPublicPath, getGlobalFileName, getGlobalDist, getGlobalWWW } from './app-file-naming';
 import { transpiledInMemoryPlugin } from '../bundle/component-modules';
+import { transpileGlobalToEs5 } from '../transpile/core-build';
 
 
-export async function generateAppGlobal(config: BuildConfig, ctx: BuildContext, appRegistry: AppRegistry) {
-  const globalJsContents = await generateAppGlobalContents(config, ctx);
+export async function generateAppGlobal(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget, appRegistry: AppRegistry) {
+  const globalJsContents = await generateAppGlobalContents(config, ctx, sourceTarget);
 
   if (globalJsContents.length) {
     appRegistry.global = getGlobalFileName(config);
@@ -35,12 +36,12 @@ export async function generateAppGlobal(config: BuildConfig, ctx: BuildContext, 
 }
 
 
-export function generateAppGlobalContents(config: BuildConfig, ctx: BuildContext) {
+export function generateAppGlobalContents(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget) {
   let globalJsContents: string[] = [];
 
   return Promise.all([
-    loadDependentGlobalJsContents(config, ctx),
-    bundleProjectGlobal(config, ctx, config.namespace, config.global)
+    loadDependentGlobalJsContents(config, ctx, sourceTarget),
+    bundleProjectGlobal(config, ctx, sourceTarget, config.namespace, config.global)
 
   ]).then(results => {
     const dependentGlobalJsContents = results[0];
@@ -58,7 +59,7 @@ export function generateAppGlobalContents(config: BuildConfig, ctx: BuildContext
 }
 
 
-function loadDependentGlobalJsContents(config: BuildConfig, ctx: BuildContext): Promise<string[]> {
+function loadDependentGlobalJsContents(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget): Promise<string[]> {
   if (!ctx.manifest.dependentManifests) {
     return Promise.resolve([]);
   }
@@ -67,12 +68,12 @@ function loadDependentGlobalJsContents(config: BuildConfig, ctx: BuildContext): 
                                 .filter(m => m.global && m.global.jsFilePath);
 
   return Promise.all(dependentManifests.map(dependentManifest => {
-    return bundleProjectGlobal(config, ctx, dependentManifest.manifestName, dependentManifest.global.jsFilePath);
+    return bundleProjectGlobal(config, ctx, sourceTarget, dependentManifest.manifestName, dependentManifest.global.jsFilePath);
   }));
 }
 
 
-function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: string, entry: string): Promise<string> {
+function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget, namespace: string, entry: string): Promise<string> {
   // stencil by itself does not have a global file
   // however, other collections can provide a global js
   // which will bundle whatever is in the global, and then
@@ -123,7 +124,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
       results.code = buildExpressionReplacer(config, results.code);
 
       // wrap our globals code with our own iife
-      return wrapGlobalJs(namespace, results.code);
+      return wrapGlobalJs(config, ctx, sourceTarget, namespace, results.code);
     });
 
   }).then(output => {
@@ -135,7 +136,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
 }
 
 
-function wrapGlobalJs(globalJsName: string, jsContent: string) {
+function wrapGlobalJs(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget, globalJsName: string, jsContent: string) {
   jsContent = (jsContent || '').trim();
 
   // just format it a touch better in dev mode
@@ -148,6 +149,37 @@ function wrapGlobalJs(globalJsName: string, jsContent: string) {
     }
     return line;
   }).join('\n');
+
+  if (sourceTarget === 'es5') {
+    // global could already be in es2015
+    // transpile it down to es5
+    config.logger.debug(`transpile global to es5: ${globalJsName}`);
+    const transpileResults = transpileGlobalToEs5(jsContent);
+    if (transpileResults.diagnostics && transpileResults.diagnostics.length) {
+      ctx.diagnostics.push(...transpileResults.diagnostics);
+    } else {
+      jsContent = transpileResults.code;
+    }
+  }
+
+  if (config.minifyJs) {
+    const minifyOpts: any = { output: {}, compress: {} };
+
+    if (sourceTarget === 'es5') {
+      // minify in a cool es5 way
+      minifyOpts.ecma = 5;
+      minifyOpts.output.ecma = 5;
+      minifyOpts.compress.ecma = 5;
+      minifyOpts.compress.arrows = false;
+    }
+
+    const minifyResults = config.sys.minifyJs(jsContent, minifyOpts);
+    if (minifyResults.diagnostics && minifyResults.diagnostics.length) {
+      ctx.diagnostics.push(...minifyResults.diagnostics);
+    } else {
+      jsContent = minifyResults.output;
+    }
+  }
 
   return `\n(function(publicPath){${jsContent}\n})(publicPath);\n`;
 }

@@ -40,7 +40,6 @@ function minifyCore(config: BuildConfig, sourceTarget: SourceTarget, input: stri
   if (config.minifyJs) {
     if (sourceTarget !== 'es5') {
       opts.compress.arrows = true;
-
     }
 
     opts.mangle.properties.reserved = RESERVED_PROPERTIES.slice();

@@ -23,25 +23,27 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   };
 
   // normal es2015 build
-  const globalJsContents = await generateAppGlobal(config, ctx, appRegistry);
+  const globalJsContentsEs2015 = await generateAppGlobal(config, ctx, 'es2015', appRegistry);
 
   // figure out which sections should be included in the core build
   const buildConditionals = setBuildConditionals(ctx, ctx.manifestBundles);
   buildConditionals.coreId = 'core';
 
-  const coreFilename = await generateCore(config, ctx, 'es2015', globalJsContents, buildConditionals);
+  const coreFilename = await generateCore(config, ctx, 'es2015', globalJsContentsEs2015, buildConditionals);
   appRegistry.core = coreFilename;
 
 
   if (config.es5Fallback) {
     // es5 build (if needed)
+    const globalJsContentsEs5 = await generateAppGlobal(config, ctx, 'es5', appRegistry);
+
     const buildConditionalsEs5 = setBuildConditionals(ctx, ctx.manifestBundles);
     buildConditionalsEs5.coreId = 'core.pf';
     buildConditionalsEs5.es5 = true;
     buildConditionalsEs5.polyfills = true;
     buildConditionalsEs5.customSlot = true;
 
-    const coreFilenameEs5 = await generateCore(config, ctx, 'es5', globalJsContents, buildConditionalsEs5);
+    const coreFilenameEs5 = await generateCore(config, ctx, 'es5', globalJsContentsEs5, buildConditionalsEs5);
     appRegistry.corePolyfilled = coreFilenameEs5;
 
   } else if (config.generateWWW) {
