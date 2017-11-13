@@ -29,7 +29,7 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
   const buildConditionals = setBuildConditionals(ctx, ctx.manifestBundles);
   buildConditionals.coreId = 'core';
 
-  const coreFilename = await generateCore(config, ctx, globalJsContents, buildConditionals);
+  const coreFilename = await generateCore(config, ctx, 'es2015', globalJsContents, buildConditionals);
   appRegistry.core = coreFilename;
 
 
@@ -41,7 +41,7 @@ export async function generateAppFiles(config: BuildConfig, ctx: BuildContext) {
     buildConditionalsEs5.polyfills = true;
     buildConditionalsEs5.customSlot = true;
 
-    const coreFilenameEs5 = await generateCore(config, ctx, globalJsContents, buildConditionalsEs5);
+    const coreFilenameEs5 = await generateCore(config, ctx, 'es5', globalJsContents, buildConditionalsEs5);
     appRegistry.corePolyfilled = coreFilenameEs5;
 
   } else if (config.generateWWW) {

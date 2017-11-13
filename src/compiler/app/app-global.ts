@@ -123,7 +123,7 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
       results.code = buildExpressionReplacer(config, results.code);
 
       // wrap our globals code with our own iife
-      return wrapGlobalJs(config, namespace, results.code);
+      return wrapGlobalJs(namespace, results.code);
     });
 
   }).then(output => {
@@ -135,21 +135,19 @@ function bundleProjectGlobal(config: BuildConfig, ctx: BuildContext, namespace: 
 }
 
 
-function wrapGlobalJs(config: BuildConfig, globalJsName: string, jsContent: string) {
+function wrapGlobalJs(globalJsName: string, jsContent: string) {
   jsContent = (jsContent || '').trim();
 
-  if (!config.minifyJs) {
-    // just format it a touch better in dev mode
-    jsContent = `\n/** ${globalJsName || ''} global **/\n\n${jsContent}`;
+  // just format it a touch better in dev mode
+  jsContent = `\n/** ${globalJsName || ''} global **/\n\n${jsContent}`;
 
-    const lines = jsContent.split(/\r?\n/);
-    jsContent = lines.map(line => {
-      if (line.length) {
-        return '    ' + line;
-      }
-      return line;
-    }).join('\n');
-  }
+  const lines = jsContent.split(/\r?\n/);
+  jsContent = lines.map(line => {
+    if (line.length) {
+      return '    ' + line;
+    }
+    return line;
+  }).join('\n');
 
   return `\n(function(publicPath){${jsContent}\n})(publicPath);\n`;
 }
@@ -159,7 +157,7 @@ export function generateGlobalJs(config: BuildConfig, globalJsContents: string[]
   const publicPath = getAppPublicPath(config);
 
   const output = [
-    generatePreamble(config),
+    generatePreamble(config, 'es2015'),
     `(function(appNamespace,publicPath){`,
     `"use strict";\n`,
     globalJsContents.join('\n').trim(),

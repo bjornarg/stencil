@@ -32,11 +32,6 @@ function minifyCore(config: BuildConfig, sourceTarget: SourceTarget, input: stri
     opts.ecma = 5;
     opts.output.ecma = 5;
     opts.compress.ecma = 5;
-
-  } else {
-    opts.ecma = 6;
-    opts.output.ecma = 6;
-    opts.compress.ecma = 6;
   }
 
   opts.compress.toplevel = true;

@@ -1,10 +1,10 @@
-import { BuildConfig, BuildContext, BuildConditionals } from '../../util/interfaces';
+import { BuildConfig, BuildContext, BuildConditionals, SourceTarget } from '../../util/interfaces';
 import { buildCoreContent } from './build-core-content';
 import { generatePreamble, pathJoin } from '../util';
 import { getAppPublicPath, getAppDistDir, getAppWWWBuildDir, getCoreFilename } from './app-file-naming';
 
 
-export async function generateCore(config: BuildConfig, ctx: BuildContext, globalJsContent: string, buildConditionals: BuildConditionals) {
+export async function generateCore(config: BuildConfig, ctx: BuildContext, sourceTarget: SourceTarget, globalJsContent: string, buildConditionals: BuildConditionals) {
   // mega-minify the core w/ property renaming, but not the user's globals
   // hardcode which features should and should not go in the core builds
   // process the transpiled code by removing unused code and minify when configured to do so
@@ -19,7 +19,7 @@ export async function generateCore(config: BuildConfig, ctx: BuildContext, globa
   jsContent = buildCoreContent(config, ctx, buildConditionals, jsContent);
 
   // wrap the core js code together
-  jsContent = wrapCoreJs(config, jsContent);
+  jsContent = wrapCoreJs(config, sourceTarget, jsContent);
 
   if (buildConditionals.polyfills) {
     // this build wants polyfills so let's
@@ -56,12 +56,12 @@ export async function generateCore(config: BuildConfig, ctx: BuildContext, globa
 }
 
 
-export function wrapCoreJs(config: BuildConfig, jsContent: string) {
+export function wrapCoreJs(config: BuildConfig, sourceTarget: SourceTarget, jsContent: string) {
   const publicPath = getAppPublicPath(config);
 
   const output = [
-    generatePreamble(config),
-    `(function(Context,appNamespace,hydratedCssClass,publicPath,bundleIds){`,
+    generatePreamble(config, sourceTarget),
+    `(function(Context,appNamespace,hydratedCssClass,publicPath){`,
     `"use strict";\n`,
     `var s=document.querySelector("script[data-core='${APP_CORE_FILENAME_PLACEHOLDER}'][data-path]");`,
     `if(s){publicPath=s.getAttribute('data-path');}\n`,

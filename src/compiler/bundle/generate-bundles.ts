@@ -36,7 +36,15 @@ function generateBundleFiles(config: BuildConfig, ctx: BuildContext, manifestBun
 
   if (config.minifyJs) {
     // minify js
-    const minifyJsResults = config.sys.minifyJs(moduleText);
+    const opts: any = { output: {}, compress: {} };
+    if (sourceTarget === 'es5') {
+      opts.ecma = 5;
+      opts.output.ecma = 5;
+      opts.compress.ecma = 5;
+      opts.compress.arrows = false;
+    }
+
+    const minifyJsResults = config.sys.minifyJs(moduleText, opts);
     minifyJsResults.diagnostics.forEach(d => {
       ctx.diagnostics.push(d);
     });
@@ -75,7 +83,7 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
   const unscopedStyleText = formatLoadStyles(config.namespace, bundleStyles, false);
 
   const unscopedContents = [
-    generatePreamble(config)
+    generatePreamble(config, sourceTarget)
   ];
   if (unscopedStyleText.length) {
     unscopedContents.push(unscopedStyleText);
@@ -132,7 +140,7 @@ export function writeBundleFile(config: BuildConfig, ctx: BuildContext, manifest
     const scopedStyleText = formatLoadStyles(config.namespace, bundleStyles, true);
 
     const scopedContents = [
-      generatePreamble(config)
+      generatePreamble(config, sourceTarget)
     ];
 
     if (scopedStyleText.length) {
