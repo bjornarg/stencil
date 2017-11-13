@@ -32,16 +32,15 @@ function minifyCore(config: BuildConfig, sourceTarget: SourceTarget, input: stri
     opts.ecma = 5;
     opts.output.ecma = 5;
     opts.compress.ecma = 5;
+    opts.compress.arrows = false;
   }
 
   opts.compress.toplevel = true;
 
   if (config.minifyJs) {
-    if (sourceTarget === 'es5') {
-      opts.compress.arrows = false;
-
-    } else {
+    if (sourceTarget !== 'es5') {
       opts.compress.arrows = true;
+
     }
 
     opts.mangle.properties.reserved = RESERVED_PROPERTIES.slice();
